@@ -1,4 +1,4 @@
-const CACHE_NAME = 'esp-cache-v15';
+const CACHE_NAME = 'esp-cache-v16';
 const URLS_TO_CACHE = [
   './', './index.html', './esp-full.html', './esp-lite.html',
   './manifest.json', './icon-192.png', './icon-512.png',
