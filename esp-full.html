@@ -1203,12 +1203,44 @@ function tabNormatives(){
 }
 function renderNormsList(list){
   if(!list.length) return '<div class="empty"><div class="empty-ico">🔍</div>Ничего не найдено</div>';
+  
+  // Проверяем права: администратор или инженер
+  const canEdit = Auth.hasRole('engineer');
+  
   return list.map(n => {
     const inCalc = state.calc.some(c => c.norm.id === n.id);
     const cc = n.confidenceLevel >= 0.9 ? '#4ade80' : n.confidenceLevel >= 0.7 ? '#60a5fa' : n.confidenceLevel >= 0.5 ? '#facc15' : '#f87171';
-    const wf = Plugins.call('workflow','getState',n.id).status;
-    const vc = Plugins.call('versions','getVersionColor', wf);
-    return '<div class="norm-row"><div class="norm-row-head"><div class="norm-row-info"><div class="norm-row-code">' + Utils.escapeHtml(n.operationCode) + '</div><div class="norm-row-name">' + Utils.escapeHtml(n.operationName) + '</div><div class="norm-row-eq">' + (SECTION_NAMES[n.section]||'') + ' • ' + Utils.escapeHtml(n.equipmentType) + '</div>' + (n.tm?'<div class="norm-row-tm"><span class="tm-code">ТМ: '+n.tm+'</span></div>':'') + '</div><div class="norm-row-stats"><div class="norm-stat"><div class="norm-stat-v">' + n.normValue + '</div><div class="norm-stat-l">чел-час</div></div><div class="norm-stat"><div class="norm-stat-v" style="color:'+cc+';font-size:15px">' + (n.confidenceLevel*100).toFixed(0) + '%</div><div class="norm-stat-l">достов.</div></div></div><div class="norm-row-actions" style="flex-direction:column;gap:6px"><button class="btn ' + (inCalc?'btn-success':'btn-primary') + ' btn-xs" type="button" data-norm-add="' + n.id + '">' + (inCalc?'✓ В расчёте':'+ В расчёт') + '</button><button class="btn btn-ghost btn-xs" type="button" data-wf-open="' + n.id + '">✓ Согласование</button></div></div><div class="chips" style="margin-top:8px"><span class="chip chip-purple">' + REPAIR_NAMES[n.repairType] + '</span><span class="chip chip-cyan">Сложность ' + n.complexity + '/5</span><span class="chip chip-blue">' + n.teamSize + ' чел.</span><span class="chip chip-green">' + Utils.escapeHtml(n.sourceCode) + '</span></div></div>';
+    
+    // Добавляем кнопку "Изменить" для всех, у кого есть права
+    const editBtn = canEdit ? `<button class="btn btn-ghost btn-xs" type="button" data-norm-edit="${n.id}">✏️ Изменить</button>` : '';
+
+    return `<div class="norm-row">
+      <div class="norm-row-head">
+        <div class="norm-row-info">
+          <div class="norm-row-code">${Utils.escapeHtml(n.operationCode)}</div>
+          <div class="norm-row-name">${Utils.escapeHtml(n.operationName)}</div>
+          <div class="norm-row-eq">${(SECTION_NAMES[n.section]||'')} • ${Utils.escapeHtml(n.equipmentType)}</div>
+          ${n.tm ? `<div class="norm-row-tm"><span class="tm-code">ТМ: ${n.tm}</span></div>` : ''}
+        </div>
+        <div class="norm-row-stats">
+          <div class="norm-stat"><div class="norm-stat-v">${n.normValue}</div><div class="norm-stat-l">чел-час</div></div>
+          <div class="norm-stat"><div class="norm-stat-v" style="color:${cc};font-size:15px">${(n.confidenceLevel*100).toFixed(0)}%</div><div class="norm-stat-l">достов.</div></div>
+        </div>
+        <div class="norm-row-actions" style="flex-direction:column;gap:6px">
+          <button class="btn ${inCalc?'btn-success':'btn-primary'} btn-xs" type="button" data-norm-add="${n.id}">
+            ${inCalc ? '✓ В расчёте' : '+ В расчёт'}
+          </button>
+          <button class="btn btn-ghost btn-xs" type="button" data-wf-open="${n.id}">✓ Согласование</button>
+          ${editBtn}
+        </div>
+      </div>
+      <div class="chips" style="margin-top:8px">
+        <span class="chip chip-purple">${REPAIR_NAMES[n.repairType]}</span>
+        <span class="chip chip-cyan">Сложность ${n.complexity}/5</span>
+        <span class="chip chip-blue">${n.teamSize} чел.</span>
+        <span class="chip chip-green">${Utils.escapeHtml(n.sourceCode)}</span>
+      </div>
+    </div>`;
   }).join('');
 }
 function attachNormEvents(){
@@ -1246,7 +1278,36 @@ function bindNormAddButtons(){
     };
   });
 }
-function refreshNormsList(){
+function bindNormAddButtons(){
+  // ... существующий код для data-norm-add и data-wf-open ...
+
+  // ⬇️ ОБРАБОТЧИК РЕДАКТИРОВАНИЯ ⬇️
+  document.querySelectorAll('#normsListBox [data-norm-edit]').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const id = b.dataset.normEdit;
+      // Если норматив из базовых (BASE_NORMS), копируем его в custom для редактирования
+      const isBase = BASE_NORMS.some(x => x.id === id);
+      if (isBase) {
+        if(!confirm('Это базовый норматив. Его изменение создаст пользовательскую копию. Продолжить?')) return;
+        const original = BASE_NORMS.find(x => x.id === id);
+        const copy = JSON.parse(JSON.stringify(original));
+        copy.id = Utils.uid('custom');
+        copy.isCustom = true;
+        copy.operationCode = copy.operationCode + '-COPY';
+        state.custom.push(copy);
+        saveCustom();
+        state.editingNormId = copy.id;
+      } else {
+        state.editingNormId = id;
+      }
+      
+      state.tab = 'add'; // Переключаем вкладку на форму
+      renderNav(); renderChat();
+    };
+  });
+}
+  function refreshNormsList(){
   const box = document.getElementById('normsListBox');
   if(box){ box.innerHTML = renderNormsList(getFiltered()); bindNormAddButtons(); }
   const sub = document.getElementById('normsSub');
