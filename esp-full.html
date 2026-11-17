@@ -22,6 +22,7 @@
 <!-- ═══ PDF-библиотеки ЛОКАЛЬНО (критично для работы офлайн) ═══ -->
 <script src="./jspdf.umd.min.js"></script>
 <script src="./jspdf.plugin.autotable.min.js"></script>
+<script src="./pdf-font.js"></script>
 
 <!-- ═══ XLSX и DOCX — CDN с graceful-fallback ═══ -->
 <script>
@@ -564,31 +565,104 @@ input:-webkit-autofill:active{
       _useLS: useLS
     };
   })();
-  const TM = (() => {
-    const PREFIX = '1201', GROUPS = 6, GROUP_LEN = 3;
-    const TOTAL_DIGITS = PREFIX.length + GROUPS * GROUP_LEN;
-    function validate(tm){
-      if(tm === null || tm === undefined || tm === '') return {ok:true, empty:true, msg:'Необязательно'};
-      if(typeof tm !== 'string') return {ok:false, msg:'Не строка'};
-      const v = tm.trim();
-      if(v === '') return {ok:true, empty:true, msg:'Необязательно'};
-      const p = v.split('-');
-      if(p.length !== GROUPS + 1) return {ok:false, msg:'Нужно ' + (GROUPS+1) + ' групп'};
-      if(p[0] !== PREFIX) return {ok:false, msg:'Префикс ' + PREFIX};
-      for(let i=1; i<p.length; i++){ if(!/^\d{3}$/.test(p[i])) return {ok:false, msg:'Группа ' + i + ': 3 цифры'}; }
-      return {ok:true, msg:'OK'};
+ const TM = (() => {
+  // ---- формат по-прежнему описывает "полный" шаблон, но только для нормализации ----
+  const PREFIX = '1201';
+  const GROUPS = 6;          // максимум групп после 1201 (глубина 1..6 сегментов)
+  const GROUP_LEN = 3;
+
+  // Архивные ветки — в работу не берём (только история)
+  const ARCHIVED_ROOTS = ['1201-010', '1201-999'];
+
+  // Справочник кодов ТМ, загружаемый из выгрузки (оба цеха: ЭСПЦ + КЦ)
+  // Set<string>. Пока пуст — validate работает в "мягком" режиме (только формат).
+  let dictionary = new Set();
+
+  function _isArchived(v) {
+    return ARCHIVED_ROOTS.some(root => v === root || v.startsWith(root + '-'));
+  }
+
+  /**
+   * Валидация кода ТМ.
+   * Правила:
+   *  1) 1201 + 0..5 групп вида -NNN  (любая глубина от 1 до 6 сегментов)
+   *  2) архивные ветки 1201-999*, 1201-010* — запрещены
+   *  3) если справочник загружен — код обязан в нём быть (ловит опечатки)
+   */
+  function validate(tm) {
+    if (tm === null || tm === undefined) return { ok: true, empty: true, msg: 'Необязательно' };
+    if (typeof tm !== 'string') return { ok: false, msg: 'Не строка' };
+
+    const v = tm.trim();
+    if (v === '') return { ok: true, empty: true, msg: 'Необязательно' };
+
+    // 1) формат: 1201 и опциональные группы -NNN
+    if (!/^1201(-\d{3}){0,5}$/.test(v)) {
+      return { ok: false, msg: 'Формат: 1201 или 1201-NNN[-NNN…] (NNN — 3 цифры)' };
     }
-    function format(input){
-      if(!input) return '';
-      const v = String(input).replace(/[^\d]/g,'').slice(0, TOTAL_DIGITS);
-      if(v.length === 0) return '';
-      if(v.length <= 4) return v;
-      let out = v.slice(0, 4);
-      for(let i = 4; i < v.length; i += GROUP_LEN) out += '-' + v.slice(i, i + GROUP_LEN);
-      return out;
+
+    // 2) архивные ветки
+    if (_isArchived(v)) {
+      return { ok: false, msg: 'Архивная ветка ТМ — в работу не берётся' };
     }
-    return { validate, format, PREFIX, GROUPS, GROUP_LEN };
-  })();
+
+    // 3) существование в справочнике (если загружен)
+    if (dictionary && dictionary.size) {
+      if (!dictionary.has(v)) {
+        // подсказка: ближайший существующий предок
+        const parts = v.split('-');
+        let hint = null;
+        for (let i = parts.length - 1; i >= 1; i--) {
+          const cand = parts.slice(0, i).join('-');
+          if (dictionary.has(cand)) { hint = cand; break; }
+        }
+        return {
+          ok: false,
+          msg: 'ТМ нет в справочнике' + (hint ? ' (ближайший предок: ' + hint + ')' : '')
+        };
+      }
+    }
+
+    return { ok: true, msg: 'OK' };
+  }
+
+  /**
+   * Нормализация ввода: верхний регистр, схлопывание пробелов/двойных дефисов,
+   * при необходимости дописывает префикс 1201. Ничего не отбрасывает —
+   * глубину и корректность решает validate().
+   */
+  function format(input) {
+    let v = String(input == null ? '' : input).toUpperCase();
+    v = v.replace(/\s+/g, '').replace(/-{2,}/g, '-');
+    if (v && v !== PREFIX && !v.startsWith(PREFIX + '-') && !v.startsWith(PREFIX)) {
+      v = PREFIX + '-' + v;
+    }
+    return v;
+  }
+
+  /**
+   * Загрузить справочник из массива выгрузки ТМ.
+   * rows: [{ code: string, archived?: boolean }, ...]
+   */
+  function loadDictionary(rows) {
+    const set = new Set();
+    for (const r of rows || []) {
+      if (!r || !r.code) continue;
+      const code = String(r.code).trim();
+      if (!code) continue;
+      if (r.archived) continue;
+      if (_isArchived(code)) continue;
+      set.add(code);
+    }
+    dictionary = set;
+    return dictionary.size;
+  }
+
+  /** Для отладки: текущий справочник */
+  function getDictionary() { return dictionary; }
+
+  return { validate, format, loadDictionary, getDictionary };
+})();
   const Auth = (() => {
     const USERS_KEY = 'users';
     const ROLES = { admin:{name:'Администратор', level:3}, engineer:{name:'Инженер', level:2}, user:{name:'Пользователь', level:1} };
@@ -1088,13 +1162,15 @@ const BASE_NORMS = N_RAW.map(r => ({
   function translit(s){const T={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya','А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'E','Ж':'Zh','З':'Z','И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'Kh','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Shch','Ъ':'','Ы':'Y','Ь':'','Э':'E','Ю':'Yu','Я':'Ya'}; return String(s||'').split('').map(c=>T[c]!==undefined?T[c]:c).join('');}
   function hasCyr(s){return /[а-яё]/i.test(String(s||''));}
   function safeText(s,doc){const t=String(s==null?'':s); return (doc&&doc.__useTranslit&&hasCyr(t))?translit(t):t;}
-  function setFont(doc,style='normal'){doc.setFont(doc.__useTranslit?'helvetica':'helvetica',style);}
-  function createDoc(orientation='portrait'){ const { jsPDF }=window.jspdf; const doc=new jsPDF({orientation,unit:'mm',format:'a4'}); doc.setFont('helvetica','normal'); doc.__useTranslit=true; return doc; }
+  function setFont(doc,style='normal'){doc.setFont(doc.__font||'helvetica',style);}
+  function registerFonts(doc){ const F=window.ESP_PDF_FONTS; if(!F||!F.regular) return false; try{ doc.addFileToVFS('DejaVuSans.ttf',F.regular); doc.addFont('DejaVuSans.ttf','DejaVuSans','normal'); const b=F.bold||F.regular; doc.addFileToVFS('DejaVuSans-Bold.ttf',b); doc.addFont('DejaVuSans-Bold.ttf','DejaVuSans','bold'); return true; }catch(e){ console.error('[PDF] Шрифт не зарегистрирован, включён транслит:',e); return false; } }
+  function createDoc(orientation='portrait'){ const { jsPDF }=window.jspdf; const doc=new jsPDF({orientation,unit:'mm',format:'a4',compress:true}); const ok=registerFonts(doc); doc.__font=ok?'DejaVuSans':'helvetica'; doc.__useTranslit=!ok; doc.setFont(doc.__font,'normal'); return doc; }
+  function cellHook(doc){ return function(d){ if(doc.__useTranslit && d.cell && Array.isArray(d.cell.text)) d.cell.text=d.cell.text.map(t=>safeText(t,doc)); }; }
   function addHeader(doc,title,sub){ const w=doc.internal.pageSize.getWidth(); doc.setFillColor(30,58,138); doc.rect(0,0,w,22,'F'); doc.setFillColor(79,70,229); doc.rect(0,22,w,2,'F'); doc.setTextColor(255,255,255); setFont(doc,'bold'); doc.setFontSize(14); doc.text(safeText(title,doc),12,11); setFont(doc,'normal'); doc.setFontSize(9); doc.setTextColor(200,210,230); doc.text(safeText(sub,doc),12,17); doc.setFontSize(8); doc.text(safeText(new Date().toLocaleString('ru-RU'),doc),w-12,11,{align:'right'}); doc.text('Full V7.0',w-12,17,{align:'right'}); return 28; }
   function addFooters(doc){ const p=doc.internal.getNumberOfPages(); const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight(); for(let i=1;i<=p;i++){ doc.setPage(i); doc.setDrawColor(200,210,220); doc.setLineWidth(0.3); doc.line(12,h-12,w-12,h-12); setFont(doc,'normal'); doc.setFontSize(7.5); doc.setTextColor(120,130,140); doc.text(safeText('Система нормативов ЭСПЦ',doc),12,h-7); doc.text(safeText('Автор: '+(Auth.currentSession()?.login||'?'),doc),w/2,h-7,{align:'center'}); doc.text(safeText('Стр. '+i+' из '+p,doc),w-12,h-7,{align:'right'}); } }
   function buildFilename(p,ext='pdf'){return p+'_'+new Date().toISOString().slice(0,10)+'.'+ext;}
-  function exportTechCardPDF(card){ if(!isAvailable())return {ok:false,msg:'jsPDF не загружен'}; if(!card)return {ok:false,msg:'Карта не указана'}; const doc=createDoc('landscape'); const FONT='helvetica'; let y=addHeader(doc,'ТЕХНОЛОГИЧЕСКАЯ КАРТА',card.cardNumber+' — '+card.equipmentName); const all=typeof allNorms==='function'?allNorms():[]; const rows=card.operations.map((op,i)=>{const n=all.find(x=>x.id===op.normativeId); if(!n)return null; return [String(i+1),n.operationCode,n.operationName,n.tm||'—',String(n.normValue),n.unit,String(op.quantity),String(n.normValue*op.quantity),String(n.teamSize),n.qualification||'—'];}).filter(Boolean); doc.autoTable({startY:y,head:[['№','Код','Операция','ТМ','Норма','Ед.','Кол-во','Итого','Бриг.','Разряд']],body:rows,styles:{font:FONT,fontSize:7,cellPadding:1.5,overflow:'linebreak',textColor:[51,65,85]},headStyles:{fillColor:[30,58,138],textColor:[255,255,255],fontSize:7.5,fontStyle:'bold',halign:'center',font:FONT},foot:[['','','ИТОГО:','','','','',String(card.totalHours),'','']],footStyles:{fillColor:[241,245,249],textColor:[30,58,138],fontStyle:'bold',fontSize:9}}); addFooters(doc); const fn='ТК_'+card.cardNumber.replace(/[^\w-]/g,'_')+'.pdf'; doc.save(fn); return {ok:true,filename:fn,pages:doc.internal.getNumberOfPages(),cyrillic:!doc.__useTranslit}; }
-  function exportNormsRegistryPDF(filtered){ if(!isAvailable())return {ok:false,msg:'jsPDF не загружен'}; const norms=filtered||(typeof allNorms==='function'?allNorms():[]); if(!norms.length)return {ok:false,msg:'Нет нормативов'}; const doc=createDoc('landscape'); const STATUSES=ESP.Plugins.call('workflow','STATUSES'); const FONT='helvetica'; let y=addHeader(doc,'РЕЕСТР НОРМАТИВОВ','Записей: '+norms.length); const data=norms.map(n=>{const st=ESP.Plugins.call('workflow','getState',n.id); return [n.operationCode,n.operationName,ESP.DICT.SECTION_NAMES[n.section]||n.section,ESP.DICT.CATEGORY_NAMES[n.equipmentCategory]||n.equipmentCategory,n.equipmentType||'—',n.tm||'—',String(n.normValue),String(n.teamSize),n.qualification||'—',(n.confidenceLevel*100).toFixed(0)+'%',STATUSES[st.status]?.name||st.status];}); doc.autoTable({startY:y,head:[['Код','Наименование','Участок','Категория','Оборудование','ТМ','Норма','Бриг.','Разряд','Дост.','Статус']],body:data,styles:{font:FONT,fontSize:6.5,cellPadding:1.2,overflow:'linebreak',textColor:[51,65,85]},headStyles:{fillColor:[30,58,138],textColor:[255,255,255],fontSize:7,fontStyle:'bold',font:FONT}}); addFooters(doc); const fn=buildFilename('norms_registry'); doc.save(fn); return {ok:true,filename:fn,count:norms.length,pages:doc.internal.getNumberOfPages(),cyrillic:!doc.__useTranslit}; }
+  function exportTechCardPDF(card){ if(!isAvailable())return {ok:false,msg:'jsPDF не загружен'}; if(!card)return {ok:false,msg:'Карта не указана'}; const doc=createDoc('landscape'); const FONT=doc.__font; let y=addHeader(doc,'ТЕХНОЛОГИЧЕСКАЯ КАРТА',card.cardNumber+' — '+card.equipmentName); const all=typeof allNorms==='function'?allNorms():[]; const rows=card.operations.map((op,i)=>{const n=all.find(x=>x.id===op.normativeId); if(!n)return null; return [String(i+1),n.operationCode,n.operationName,n.tm||'—',String(n.normValue),n.unit,String(op.quantity),String(n.normValue*op.quantity),String(n.teamSize),n.qualification||'—'];}).filter(Boolean); doc.autoTable({didParseCell:cellHook(doc),startY:y,head:[['№','Код','Операция','ТМ','Норма','Ед.','Кол-во','Итого','Бриг.','Разряд']],body:rows,styles:{font:FONT,fontSize:7,cellPadding:1.5,overflow:'linebreak',textColor:[51,65,85]},headStyles:{fillColor:[30,58,138],textColor:[255,255,255],fontSize:7.5,fontStyle:'bold',halign:'center',font:FONT},foot:[['','','ИТОГО:','','','','',String(card.totalHours),'','']],footStyles:{fillColor:[241,245,249],textColor:[30,58,138],fontStyle:'bold',fontSize:9,font:FONT}}); addFooters(doc); const fn='ТК_'+String(card.cardNumber).replace(/[^\wа-яёА-ЯЁ-]/g,'_')+'.pdf'; doc.save(fn); return {ok:true,filename:fn,pages:doc.internal.getNumberOfPages(),cyrillic:!doc.__useTranslit}; }
+  function exportNormsRegistryPDF(filtered){ if(!isAvailable())return {ok:false,msg:'jsPDF не загружен'}; const norms=filtered||(typeof allNorms==='function'?allNorms():[]); if(!norms.length)return {ok:false,msg:'Нет нормативов'}; const doc=createDoc('landscape'); const STATUSES=ESP.Plugins.call('workflow','STATUSES'); const FONT=doc.__font; let y=addHeader(doc,'РЕЕСТР НОРМАТИВОВ','Записей: '+norms.length); const data=norms.map(n=>{const st=ESP.Plugins.call('workflow','getState',n.id); return [n.operationCode,n.operationName,ESP.DICT.SECTION_NAMES[n.section]||n.section,ESP.DICT.CATEGORY_NAMES[n.equipmentCategory]||n.equipmentCategory,n.equipmentType||'—',n.tm||'—',String(n.normValue),String(n.teamSize),n.qualification||'—',(n.confidenceLevel*100).toFixed(0)+'%',STATUSES[st.status]?.name||st.status];}); doc.autoTable({didParseCell:cellHook(doc),startY:y,head:[['Код','Наименование','Участок','Категория','Оборудование','ТМ','Норма','Бриг.','Разряд','Дост.','Статус']],body:data,styles:{font:FONT,fontSize:6.5,cellPadding:1.2,overflow:'linebreak',textColor:[51,65,85]},headStyles:{fillColor:[30,58,138],textColor:[255,255,255],fontSize:7,fontStyle:'bold',font:FONT}}); addFooters(doc); const fn=buildFilename('norms_registry'); doc.save(fn); return {ok:true,filename:fn,count:norms.length,pages:doc.internal.getNumberOfPages(),cyrillic:!doc.__useTranslit}; }
   ESP.Plugins.register('pdf-export',{version:'2.2',isAvailable,exportTechCardPDF,exportNormsRegistryPDF,transliterate:translit,hasCyrillic:hasCyr});
 })();
 </script>
@@ -1124,12 +1200,28 @@ const state = {
   verCompareA: null,
   verCompareB: null,
   editingNormId: null,
-  editingEquipId: null
+  editingEquipId: null,
+  // ═══ НОВОЕ: метаданные нормативов (norm_id, source_document, maintenance_strategy, labor_breakdown, ...) ═══
+  normMeta: Storage.get('norm_meta', {})
 };
-function allNorms(){ return [...BASE_NORMS, ...state.custom]; }
-function saveCards(){ Storage.set('cards', state.cards); }
-function saveCustom(){ Storage.set('custom', state.custom); }
-function saveEquip(){ Storage.set('equip', state.customEquip); }
+// Сохранение пользовательских данных в localStorage (ключи: esp_custom, esp_equip, esp_cards, esp_norm_meta).
+// Раньше эти функции вызывались, но не были определены (ReferenceError), поэтому правки не сохранялись.
+function saveCustom(){ return Storage.set('custom', state.custom); }
+function saveEquip(){ return Storage.set('equip', state.customEquip); }
+function saveCards(){ return Storage.set('cards', state.cards); }
+function saveNormMeta(){ return Storage.set('norm_meta', state.normMeta); }
+function allNorms(){
+  const merged = [...BASE_NORMS, ...state.custom].map(n => {
+    const meta = state.normMeta[n.id];
+    return meta ? { ...n, ...meta } : n;
+  });
+  return merged;
+}
+function setNormMeta(id, meta){
+  if(!meta || !Object.keys(meta).length){ delete state.normMeta[id]; }
+  else { state.normMeta[id] = meta; }
+  saveNormMeta();
+}
 function getFiltered(){
   return allNorms().filter(n => {
     const s = state.search.toLowerCase().trim();
@@ -1137,7 +1229,6 @@ function getFiltered(){
     return mS && (!state.fSection || n.section === state.fSection) && (!state.fCat || n.equipmentCategory === state.fCat) && (!state.fRep || n.repairType === state.fRep) && (!state.fSrc || n.sourceType === state.fSrc);
   });
 }
-
 function showLogin(){
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('app').classList.add('hidden');
@@ -1238,7 +1329,7 @@ function renderChat(){
 /* ═══ НОРМАТИВЫ ═══ */
 function tabNormatives(){
   const filtered = getFiltered();
-  appendMsg('<div class="bubble-title">🔍 База нормативов</div><div class="bubble-sub" id="normsSub">Найдено: <span class="hl">' + filtered.length + '</span> из ' + allNorms().length + '</div><div class="norms-toolbar"><input class="search-inp" id="srch" placeholder="🔎 Поиск..." value="' + Utils.escapeHtml(state.search) + '" autocapitalize="off" spellcheck="false"><select class="sel" id="f-sec"><option value="">Все участки</option>' + Object.entries(SECTION_NAMES).map(([k,v]) => '<option value="'+k+'" '+(state.fSection===k?'selected':'')+'>'+v+'</option>').join('') + '</select><select class="sel" id="f-cat"><option value="">Все категории</option>' + Object.entries(CATEGORY_NAMES).map(([k,v]) => '<option value="'+k+'" '+(state.fCat===k?'selected':'')+'>'+v+'</option>').join('') + '</select><select class="sel" id="f-rep"><option value="">Все типы</option>' + Object.entries(REPAIR_NAMES).map(([k,v]) => '<option value="'+k+'" '+(state.fRep===k?'selected':'')+'>'+v+'</option>').join('') + '</select><button class="btn btn-danger btn-xs" type="button" id="normsExportPDF">📕 PDF</button></div><div style="max-height:60vh;overflow-y:auto;padding-right:4px;-webkit-overflow-scrolling:touch" id="normsListBox">' + renderNormsList(filtered) + '</div>').then(() => attachNormEvents());
+  appendMsg('<div class="bubble-title">🔍 База нормативов</div><div class="bubble-sub" id="normsSub">Найдено: <span class="hl">' + filtered.length + '</span> из ' + allNorms().length + '</div><div class="norms-toolbar"><input class="search-inp" id="srch" placeholder="🔎 Поиск..." value="' + Utils.escapeHtml(state.search) + '" autocapitalize="off" spellcheck="false"><select class="sel" id="f-sec"><option value="">Все участки</option>' + Object.entries(SECTION_NAMES).map(([k,v]) => '<option value="'+k+'" '+(state.fSection===k?'selected':'')+'>'+v+'</option>').join('') + '</select><select class="sel" id="f-cat"><option value="">Все категории</option>' + Object.entries(CATEGORY_NAMES).map(([k,v]) => '<option value="'+k+'" '+(state.fCat===k?'selected':'')+'>'+v+'</option>').join('') + '</select><select class="sel" id="f-rep"><option value="">Все типы</option>' + Object.entries(REPAIR_NAMES).map(([k,v]) => '<option value="'+k+'" '+(state.fRep===k?'selected':'')+'>'+v+'</option>').join('') + '</select><button class="btn btn-danger btn-xs" type="button" id="normsExportPDF">📕 PDF</button><button class="btn btn-success btn-xs" type="button" id="normsExportSAP">📥 CSV SAP</button></div><div style="max-height:60vh;overflow-y:auto;padding-right:4px;-webkit-overflow-scrolling:touch" id="normsListBox">' + renderNormsList(filtered) + '</div>').then(() => attachNormEvents());
 }
 function renderNormsList(list){
   if(!list.length) return '<div class="empty"><div class="empty-ico">🔍</div>Ничего не найдено</div>';
@@ -1273,11 +1364,15 @@ function renderNormsList(list){
           ${editBtn}
         </div>
       </div>
-      <div class="chips" style="margin-top:8px">
+       <div class="chips" style="margin-top:8px">
         <span class="chip chip-purple">${REPAIR_NAMES[n.repairType]}</span>
         <span class="chip chip-cyan">Сложность ${n.complexity}/5</span>
         <span class="chip chip-blue">${n.teamSize} чел.</span>
         <span class="chip chip-green">${Utils.escapeHtml(n.sourceCode)}</span>
+        ${n.norm_id ? `<span class="chip chip-orange" title="norm_id">${Utils.escapeHtml(n.norm_id)}</span>` : ''}
+        ${n.maintenance_strategy?.interval_value ? `<span class="chip chip-yellow">${n.maintenance_strategy.interval_value} ${n.maintenance_strategy.interval_unit}</span>` : ''}
+        ${Array.isArray(n.labor_breakdown) && n.labor_breakdown.length ? `<span class="chip chip-cyan">${n.labor_breakdown.reduce((a,b)=>a+(b.count||0),0)} чел. в breakdown</span>` : ''}
+        ${n.consistency_check === true ? `<span class="chip chip-green">✓ consistent</span>` : (n.consistency_check === false ? `<span class="chip chip-red">✕ inconsistent</span>` : '')}
       </div>
     </div>`;
   }).join('');
@@ -1288,46 +1383,78 @@ function attachNormEvents(){
   bindNormAddButtons();
   const pdfBtn = document.getElementById('normsExportPDF');
   if(pdfBtn) pdfBtn.onclick = () => {
+    const sapBtn = document.getElementById('normsExportSAP');
+  if(sapBtn) sapBtn.onclick = () => {
     const filtered = getFiltered();
+    if(!filtered.length){ showToast('Нет данных', 'warn'); return; }
+    const headers = ['norm_id','norm_version','source_doc_type','source_doc_number','source_doc_title','valid_from','valid_to','status','tech_location_code','tech_location_name','inventory','operation','maintenance_type','interval_value','interval_unit','labor_breakdown','total_labor_hours','calendar_hours','critical_path_hours','operation_details','consistency_check'];
+    const rows = filtered.map(n => {
+      const sd = n.source_document || {};
+      const ms = n.maintenance_strategy || {};
+      const esc = v => {
+        const s = v == null ? '' : String(v);
+        if(s.includes(';') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g,'""') + '"';
+        return s;
+      };
+      return [
+        n.norm_id || '', n.norm_version || 1, sd.type || '', sd.number || '', sd.title || '',
+        n.valid_from || '', n.valid_to || '', n.status || '', n.tm || '',
+        n.equipmentType || '', n.equipmentUnit || '', n.operationName || '',
+        ms.type || '', ms.interval_value != null ? ms.interval_value : '', ms.interval_unit || '',
+        Array.isArray(n.labor_breakdown) ? JSON.stringify(n.labor_breakdown) : '',
+        n.normValue != null ? n.normValue : '',
+        n.calendar_hours != null ? n.calendar_hours : '',
+        n.critical_path_hours != null ? n.critical_path_hours : '',
+        n.operation_details ? JSON.stringify(n.operation_details) : '',
+        n.consistency_check === true ? 'true' : (n.consistency_check === false ? 'false' : '')
+      ].map(esc).join(';');
+    });
+    const csv = '\uFEFF' + headers.join(';') + '\n' + rows.join('\n');
+    Utils.download('norms_import_' + new Date().toISOString().slice(0,10) + '.csv', csv, 'text/csv');
+    showToast('CSV: ' + filtered.length + ' строк', 'ok');
+  };
+const filtered = getFiltered();
     if(!filtered.length){ showToast('Нет данных', 'warn'); return; }
     const r = Plugins.call('pdf-export','exportNormsRegistryPDF', filtered);
     if(r && r.ok) showToast('PDF: ' + r.count + ' записей', 'ok', 4000); else showToast('Ошибка: ' + (r?.msg||'jsPDF не загружен'), 'err');
   };
 }
 function bindNormAddButtons(){
-  document.querySelectorAll('#normsListBox [data-norm-add]').forEach(b => {
-    b.onclick = () => {
-      const id = b.dataset.normAdd;
+  // Единый обработчик кнопок списка нормативов (делегирование событий).
+  // Было: функция была объявлена дважды, вторая (без кода «+ В расчёт») перекрывала первую.
+  const box = document.getElementById('normsListBox');
+  if(!box) return;
+  box.onclick = (e) => {
+    const addBtn = e.target.closest('[data-norm-add]');
+    const wfBtn = e.target.closest('[data-wf-open]');
+    const editBtn = e.target.closest('[data-norm-edit]');
+    if(addBtn){
+      e.stopPropagation();
+      const id = addBtn.dataset.normAdd;
       const norm = allNorms().find(n => n.id === id);
-      if(!state.calc.find(c => c.norm.id === id)) {
-        state.calc.push({norm, qty:1});
-        Storage.set('autosave_calc', state.calc);
-      }
-      b.className = 'btn btn-success btn-xs'; b.textContent = '✓ В расчёте';
-    };
-  });
-  document.querySelectorAll('#normsListBox [data-wf-open]').forEach(b => {
-    b.onclick = (e) => {
+      if(!norm){ showToast('Норматив не найден: ' + id, 'err'); return; }
+      if(state.calc.some(c => c.norm.id === id)){ showToast('Уже в расчёте: ' + norm.operationCode, 'warn'); return; }
+      state.calc.push({norm: JSON.parse(JSON.stringify(norm)), qty: 1});
+      Storage.set('autosave_calc', state.calc);
+      addBtn.className = 'btn btn-success btn-xs'; addBtn.textContent = '✓ В расчёте';
+      showToast('В расчёт: ' + norm.operationCode + ' (всего ' + state.calc.length + ')', 'ok');
+      return;
+    }
+    if(wfBtn){
       e.stopPropagation();
       state.workflowFilter = 'all';
       state.wfExpanded = state.wfExpanded || new Set();
-      state.wfExpanded.add(b.dataset.wfOpen);
+      state.wfExpanded.add(wfBtn.dataset.wfOpen);
       state.tab = 'workflow';
       renderNav(); renderChat();
-    };
-  });
-}
-function bindNormAddButtons(){
-  // ... существующий код для data-norm-add и data-wf-open ...
-
-  // ⬇️ ОБРАБОТЧИК РЕДАКТИРОВАНИЯ ⬇️
-  document.querySelectorAll('#normsListBox [data-norm-edit]').forEach(b => {
-    b.onclick = (e) => {
+      return;
+    }
+    if(editBtn){
       e.stopPropagation();
-      const id = b.dataset.normEdit;
-      // Если норматив из базовых (BASE_NORMS), копируем его в custom для редактирования
+      const id = editBtn.dataset.normEdit;
+      // Если норматив базовый (BASE_NORMS), копируем его в custom для редактирования
       const isBase = BASE_NORMS.some(x => x.id === id);
-      if (isBase) {
+      if(isBase){
         if(!confirm('Это базовый норматив. Его изменение создаст пользовательскую копию. Продолжить?')) return;
         const original = BASE_NORMS.find(x => x.id === id);
         const copy = JSON.parse(JSON.stringify(original));
@@ -1340,11 +1467,10 @@ function bindNormAddButtons(){
       } else {
         state.editingNormId = id;
       }
-      
-      state.tab = 'add'; // Переключаем вкладку на форму
+      state.tab = 'add';
       renderNav(); renderChat();
-    };
-  });
+    }
+  };
 }
   function refreshNormsList(){
   const box = document.getElementById('normsListBox');
@@ -1423,11 +1549,39 @@ function tabStatistics(){
 /* ═══ ФОРМА НОРМАТИВА ═══ */
 function tabAdd(){
   const isEdit = !!state.editingNormId;
-  appendMsg('<div class="bubble-title">' + (isEdit ? '✏️ Редактировать норматив' : '➕ Добавить норматив') + '</div><div class="bubble-sub">HARD-дедупликация</div><div id="addFormWarn"></div><form id="addForm"><div class="form-sec-title">📋 Основная</div><div class="form-row"><div class="form-group"><label class="form-lbl">Код *</label><input class="form-inp" name="operationCode" required autocapitalize="characters" spellcheck="false" placeholder="ДСП-Н-026"></div><div class="form-group"><label class="form-lbl">Участок *</label><select class="form-sel" name="section">' + Object.entries(SECTION_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-group"><label class="form-lbl">Наименование *</label><input class="form-inp" name="operationName" required placeholder="Замена/ремонт..."></div><div class="form-row"><div class="form-group"><label class="form-lbl">Категория *</label><select class="form-sel" name="equipmentCategory">' + Object.entries(CATEGORY_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Тип ремонта</label><select class="form-sel" name="repairType">' + Object.entries(REPAIR_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип оборудования *</label><input class="form-inp" name="equipmentType" required placeholder="Электродуговая печь"></div><div class="form-group"><label class="form-lbl">Единица</label><input class="form-inp" name="equipmentUnit" placeholder="ДСП-100"></div></div><div class="form-sec-title">🏷️ ТМ</div><div class="form-group"><label class="form-lbl">Код ТМ</label><input class="form-inp tm" name="tm" id="tmInput" maxlength="28" autocomplete="off" inputmode="numeric" placeholder="1201-210-010-010"><div class="form-hint" id="tmHint">Формат: <code>1201-XXX-XXX-XXX-XXX-XXX-XXX</code></div></div><div class="form-sec-title">📐 Норматив</div><div class="form-row"><div class="form-group"><label class="form-lbl">Чел-час *</label><input class="form-inp" type="number" name="normValue" min="0.1" step="0.5" required inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Бригада</label><input class="form-inp" type="number" name="teamSize" value="2" min="1" inputmode="numeric"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Квалификация</label><input class="form-inp" name="qualification" placeholder="4-5 разряд"></div><div class="form-group"><label class="form-lbl">Сложность</label><select class="form-sel" name="complexity">' + [1,2,3,4,5].map(i => '<option value="'+i+'" '+(i===3?'selected':'')+'>'+i+'</option>').join('') + '</select></div></div><div class="form-sec-title">📑 Источник</div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип</label><select class="form-sel" name="sourceType">' + Object.entries(SOURCE_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Код</label><input class="form-inp" name="sourceCode" placeholder="ФЕРп-2001 т.18"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Достоверность</label><input class="form-inp" type="number" name="confidenceLevel" value="0.85" min="0" max="1" step="0.05" inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Описание</label><input class="form-inp" name="description"></div></div><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="addFormReset">Сбросить</button><button type="submit" class="btn btn-orange">💾 Сохранить</button></div></form>').then(() => {
+  appendMsg('<div class="bubble-title">' + (isEdit ? '✏️ Редактировать норматив' : '➕ Добавить норматив') + '</div><div class="bubble-sub">HARD-дедупликация</div><div id="addFormWarn"></div><form id="addForm"><div class="form-sec-title">📋 Основная</div><div class="form-row"><div class="form-group"><label class="form-lbl">Код *</label><input class="form-inp" name="operationCode" required autocapitalize="characters" spellcheck="false" placeholder="ДСП-Н-026"></div><div class="form-group"><label class="form-lbl">Участок *</label><select class="form-sel" name="section">' + Object.entries(SECTION_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-group"><label class="form-lbl">Наименование *</label><input class="form-inp" name="operationName" required placeholder="Замена/ремонт..."></div><div class="form-row"><div class="form-group"><label class="form-lbl">Категория *</label><select class="form-sel" name="equipmentCategory">' + Object.entries(CATEGORY_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Тип ремонта</label><select class="form-sel" name="repairType">' + Object.entries(REPAIR_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип оборудования *</label><input class="form-inp" name="equipmentType" required placeholder="Электродуговая печь"></div><div class="form-group"><label class="form-lbl">Единица</label><input class="form-inp" name="equipmentUnit" placeholder="ДСП-100"></div></div><div class="form-sec-title">🏷️ ТМ</div><div class="form-group"><label class="form-lbl">Код ТМ</label><input class="form-inp tm" name="tm" id="tmInput" maxlength="28" autocomplete="off" inputmode="numeric" placeholder="1201-210-010-010"><div class="form-hint" id="tmHint">Формат: <code>1201-XXX-XXX-XXX-XXX-XXX-XXX</code></div></div><div class="form-sec-title">📐 Норматив</div><div class="form-row"><div class="form-group"><label class="form-lbl">Чел-час *</label><input class="form-inp" type="number" name="normValue" min="0.1" step="0.5" required inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Бригада</label><input class="form-inp" type="number" name="teamSize" value="2" min="1" inputmode="numeric"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Квалификация</label><input class="form-inp" name="qualification" placeholder="4-5 разряд"></div><div class="form-group"><label class="form-lbl">Сложность</label><select class="form-sel" name="complexity">' + [1,2,3,4,5].map(i => '<option value="'+i+'" '+(i===3?'selected':'')+'>'+i+'</option>').join('') + '</select></div></div><div class="form-sec-title">📑 Источник</div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип</label><select class="form-sel" name="sourceType">' + Object.entries(SOURCE_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Код</label><input class="form-inp" name="sourceCode" placeholder="ФЕРп-2001 т.18"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Достоверность</label><input class="form-inp" type="number" name="confidenceLevel" value="0.85" min="0" max="1" step="0.05" inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Описание</label><input class="form-inp" name="description"></div></div><div class="form-sec-title">🧾 Доп. поля норматива (SAP PM/ТОРО)</div><div class="form-row"><div class="form-group"><label class="form-lbl">norm_id</label><input class="form-inp" name="norm_id" placeholder="1201-XXX-...-OP-001"><div class="form-hint">Оставьте пустым — сгенерируется из ТМ</div></div><div class="form-group"><label class="form-lbl">Версия</label><input class="form-inp" type="number" name="norm_version" value="1" min="1" inputmode="numeric"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип источника</label><input class="form-inp" name="source_doc_type" value="ТТК"></div><div class="form-group"><label class="form-lbl">Номер ТТК</label><input class="form-inp" name="source_doc_number" placeholder="90-1Z14-..."></div></div><div class="form-group"><label class="form-lbl">Название ТТК</label><input class="form-inp" name="source_doc_title"></div><div class="form-row"><div class="form-group"><label class="form-lbl">Действует с</label><input class="form-inp" type="date" name="valid_from"></div><div class="form-group"><label class="form-lbl">Действует до</label><input class="form-inp" type="date" name="valid_to"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Статус</label><select class="form-sel" name="status"><option value="active">active</option><option value="draft">draft</option><option value="obsolete">obsolete</option></select></div><div class="form-group"><label class="form-lbl">Тип ТО</label><select class="form-sel" name="maintenance_type"><option value="periodic">periodic</option><option value="condition_based">condition_based</option><option value="corrective">corrective</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Периодичность</label><input class="form-inp" type="number" name="interval_value" step="0.1" min="0" placeholder="6"></div><div class="form-group"><label class="form-lbl">Ед. периодичности</label><select class="form-sel" name="interval_unit"><option value="month">month</option><option value="hour">hour</option><option value="day">day</option><option value="week">week</option><option value="year">year</option><option value="tonnage">tonnage</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Календарных часов</label><input class="form-inp" type="number" name="calendar_hours" step="0.1" min="0" inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Крит. путь, ч</label><input class="form-inp" type="number" name="critical_path_hours" step="0.1" min="0" inputmode="decimal"></div></div><div class="form-group"><label class="form-lbl">labor_breakdown (JSON)</label><textarea class="form-ta" name="labor_breakdown" placeholder=\'[{"qualification":"слесарь-ремонтник","grade":5,"count":2,"hours":8.0}]\'></textarea></div><div class="form-group"><label class="form-lbl">operation_details (JSON)</label><textarea class="form-ta" name="operation_details" placeholder=\'{"operation_name":"...","sub_operations":[...],"materials":[...]}\'></textarea></div><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="addFormReset">Сбросить</button><button type="submit" class="btn btn-orange">💾 Сохранить</button></div></form>').then(() => {
     const form = document.getElementById('addForm');
     const tmInp = document.getElementById('tmInput');
     const tmHint = document.getElementById('tmHint');
     const defHint = 'Формат: <code>1201-XXX-XXX-XXX-XXX-XXX-XXX</code>';
+    
+    function collectNormMeta(fd, tmVal) {
+      const meta = {};
+      const s = k => String(fd.get(k)||'').trim();
+      const n = k => { const v = parseFloat(fd.get(k)); return isNaN(v) ? null : v; };
+      meta.norm_id = s('norm_id') || (tmVal ? tmVal + '-OP-001' : '');
+      meta.norm_version = parseInt(fd.get('norm_version')) || 1;
+      meta.source_document = { type: s('source_doc_type') || 'ТТК', number: s('source_doc_number'), title: s('source_doc_title') };
+      meta.valid_from = s('valid_from') || null;
+      meta.valid_to = s('valid_to') || null;
+      meta.status = s('status') || 'active';
+      meta.maintenance_strategy = { type: s('maintenance_type') || 'periodic', interval_value: n('interval_value'), interval_unit: s('interval_unit') || 'month' };
+      meta.calendar_hours = n('calendar_hours');
+      meta.critical_path_hours = n('critical_path_hours');
+      const lbRaw = s('labor_breakdown');
+      if(lbRaw){ try{ meta.labor_breakdown = JSON.parse(lbRaw); } catch(e){ return { ok:false, msg:'labor_breakdown: невалидный JSON' }; } } else { meta.labor_breakdown = []; }
+      const odRaw = s('operation_details');
+      if(odRaw){ try{ meta.operation_details = JSON.parse(odRaw); } catch(e){ return { ok:false, msg:'operation_details: невалидный JSON' }; } } else { meta.operation_details = null; }
+      meta.consistency_check = null;
+      if(meta.operation_details && Array.isArray(meta.operation_details.sub_operations)){
+        const sumSub = meta.operation_details.sub_operations.reduce((acc,s) => acc + (parseFloat(s.labor_hours)||0), 0);
+        const total = meta.operation_details.total_labor_hours;
+        meta.consistency_check = (total != null) ? Math.abs(sumSub - total) < 0.01 : null;
+        if(meta.consistency_check === false){ return { ok:false, msg:'consistency: сумма sub_operations ('+sumSub+') ≠ total_labor_hours ('+total+')' }; }
+      }
+      return { ok:true, meta };
+    }
+
     if (state.editingNormId) {
       const n = allNorms().find(x => x.id === state.editingNormId);
       if (n) {
@@ -1447,6 +1601,17 @@ function tabAdd(){
         form.querySelector('[name="sourceCode"]').value = n.sourceCode || '';
         form.querySelector('[name="confidenceLevel"]').value = n.confidenceLevel;
         form.querySelector('[name="description"]').value = n.description || '';
+        if(n.norm_id) form.querySelector('[name="norm_id"]').value = n.norm_id;
+        if(n.norm_version) form.querySelector('[name="norm_version"]').value = n.norm_version;
+        if(n.source_document) { form.querySelector('[name="source_doc_type"]').value = n.source_document.type||''; form.querySelector('[name="source_doc_number"]').value = n.source_document.number||''; form.querySelector('[name="source_doc_title"]').value = n.source_document.title||''; }
+        if(n.valid_from) form.querySelector('[name="valid_from"]').value = n.valid_from;
+        if(n.valid_to) form.querySelector('[name="valid_to"]').value = n.valid_to;
+        if(n.status) form.querySelector('[name="status"]').value = n.status;
+        if(n.maintenance_strategy) { form.querySelector('[name="maintenance_type"]').value = n.maintenance_strategy.type||'periodic'; form.querySelector('[name="interval_value"]').value = n.maintenance_strategy.interval_value||''; form.querySelector('[name="interval_unit"]').value = n.maintenance_strategy.interval_unit||'month'; }
+        if(n.calendar_hours) form.querySelector('[name="calendar_hours"]').value = n.calendar_hours;
+        if(n.critical_path_hours) form.querySelector('[name="critical_path_hours"]').value = n.critical_path_hours;
+        if(n.labor_breakdown) form.querySelector('[name="labor_breakdown"]').value = JSON.stringify(n.labor_breakdown, null, 2);
+        if(n.operation_details) form.querySelector('[name="operation_details"]').value = JSON.stringify(n.operation_details, null, 2);
         const submitBtn = form.querySelector('button[type="submit"]');
         if(submitBtn) submitBtn.textContent = '💾 Обновить';
         tmInp.dispatchEvent(new Event('input'));
@@ -1470,21 +1635,17 @@ function tabAdd(){
       const name = (fd.get('operationName')||'').trim();
       const check = Dedup.check({operationCode:code, operationName:name, tm:tmVal}, allNorms());
       if(check.blocking.length){ document.getElementById('addFormWarn').innerHTML = '<div class="warn-banner err">🚫 ' + check.blocking[0].msg + '</div>'; return; }
+      
+      const metaRes = collectNormMeta(fd, tmVal);
+      if(!metaRes.ok){ document.getElementById('addFormWarn').innerHTML = '<div class="warn-banner err">✕ ' + metaRes.msg + '</div>'; return; }
+
       if (state.editingNormId) {
         const idx = state.custom.findIndex(x => x.id === state.editingNormId);
         if (idx !== -1) {
           const old = state.custom[idx];
-          state.custom[idx] = {
-            ...old,
-            operationCode: code, operationName: name, section: fd.get('section'),
-            equipmentCategory: fd.get('equipmentCategory'), equipmentType: fd.get('equipmentType'),
-            equipmentUnit: fd.get('equipmentUnit')||'', normValue: parseFloat(fd.get('normValue'))||0,
-            teamSize: parseInt(fd.get('teamSize'))||1, qualification: fd.get('qualification')||'',
-            complexity: parseInt(fd.get('complexity'))||3, sourceType: fd.get('sourceType'),
-            sourceCode: fd.get('sourceCode')||'', confidenceLevel: parseFloat(fd.get('confidenceLevel'))||0.7,
-            repairType: fd.get('repairType'), description: fd.get('description')||'', tm: tmVal
-          };
+          state.custom[idx] = { ...old, operationCode: code, operationName: name, section: fd.get('section'), equipmentCategory: fd.get('equipmentCategory'), equipmentType: fd.get('equipmentType'), equipmentUnit: fd.get('equipmentUnit')||'', normValue: parseFloat(fd.get('normValue'))||0, teamSize: parseInt(fd.get('teamSize'))||1, qualification: fd.get('qualification')||'', complexity: parseInt(fd.get('complexity'))||3, sourceType: fd.get('sourceType'), sourceCode: fd.get('sourceCode')||'', confidenceLevel: parseFloat(fd.get('confidenceLevel'))||0.7, repairType: fd.get('repairType'), description: fd.get('description')||'', tm: tmVal };
           saveCustom();
+          setNormMeta(state.editingNormId, metaRes.meta);
           Plugins.call('versions','saveVersion', state.custom[idx], 'Изменен');
         }
         state.editingNormId = null;
@@ -1494,10 +1655,28 @@ function tabAdd(){
         return;
       } else {
         const norm = { id: Utils.uid('custom'), operationCode:code, operationName:name, section: fd.get('section'), equipmentCategory: fd.get('equipmentCategory'), equipmentType: fd.get('equipmentType'), equipmentUnit: fd.get('equipmentUnit')||'', normValue: parseFloat(fd.get('normValue'))||0, unit:'чел-час', teamSize: parseInt(fd.get('teamSize'))||1, qualification: fd.get('qualification')||'', complexity: parseInt(fd.get('complexity'))||3, sourceType: fd.get('sourceType'), sourceCode: fd.get('sourceCode')||'', confidenceLevel: parseFloat(fd.get('confidenceLevel'))||0.7, repairType: fd.get('repairType'), description: fd.get('description')||'', toolsRequired: [], safetyRequirements: [], actualAvg: undefined, deviationPct: 0, tm: tmVal, isCustom: true, author: Auth.currentSession()?.login || 'unknown', createdAt: new Date().toISOString() };
-        state.custom.push(norm); saveCustom();
-        Plugins.call('versions','saveVersion', norm, 'Создан');
-        appendMsg('<div class="bubble-title">✅ Норматив добавлен</div><p>Код: <code>' + Utils.escapeHtml(norm.operationCode) + '</code></p>');
-        form.reset(); tmInp.classList.remove('err','ok'); tmHint.className = 'form-hint'; tmHint.innerHTML = defHint;
+        state.custom.push(norm);
+      saveCustom();
+      setNormMeta(norm.id, metaRes.meta);
+      
+      // Сохраняем версию
+      if (typeof Plugins !== 'undefined' && Plugins.call) {
+        Plugins.call('versions', 'saveVersion', norm, 'Создан');
+      }
+
+      showToast('Норматив успешно создан', 'ok');
+      
+      // Сбрасываем стейт и принудительно перекидываем на список
+      form.reset(); 
+      tmInp.classList.remove('err','ok'); 
+      tmHint.className = 'form-hint';
+      tmHint.innerHTML = defHint;
+      
+      // Возвращаемся в список нормативов и перерисовываем
+      state.tab = 'normatives';
+      renderNav();
+      renderChat();
+      return;
       }
     };
   });
