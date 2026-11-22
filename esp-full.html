@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Нормативы ЭСПЦ — Full V7.0</title>
+<title>Нормативы ЭСПЦ — Full V8.0</title>
 <meta name="author" content="ЭСПЦ">
 <meta name="copyright" content="© 2024–2026 ЭСПЦ. Все права защищены.">
 <meta name="license" content="ESP-PRO-2026-0001">
@@ -14,7 +14,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <!--
-  ESP Full V7.0 — проприетарное ПО.
+  ESP Full V8.0 — проприетарное ПО.
   © 2024–2026 ЭСПЦ. Все права защищены. Лицензия: ESP-PRO-2026-0001.
   Копирование и распространение без разрешения запрещены.
 -->
@@ -50,6 +50,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter',sans
 button,.btn,.nav-item,.tile,.chip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 button,.btn{outline:none}
 input,select,textarea{-webkit-appearance:none;appearance:none}
+input[type="checkbox"]{-webkit-appearance:checkbox;appearance:auto;width:20px;height:20px;min-width:20px;flex:none;accent-color:#fb923c;cursor:pointer;vertical-align:middle}
 .login-screen{position:fixed;inset:0;z-index:2000;background:radial-gradient(ellipse at 30% 20%,rgba(37,99,235,.18),transparent 55%),radial-gradient(ellipse at 70% 80%,rgba(168,85,247,.14),transparent 55%),#111827;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + var(--sat,0));padding-bottom:calc(20px + var(--sab,0));animation:fadeIn .3s;overflow-y:auto;-webkit-overflow-scrolling:touch}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .login-box{background:#1f2937;border:1px solid var(--border-hi);border-radius:20px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.6);animation:slideUp .4s cubic-bezier(.16,1,.3,1)}
@@ -413,7 +414,7 @@ input:-webkit-autofill:active{
 <script>
 (function(global){
   'use strict';
-  const PRODUCT = 'ESP Full V7.0';
+  const PRODUCT = 'ESP Full V8.0';
   const OWNER = 'FEDORTSOVOP';
   const LICENSE_ID = 'ESP-PRO-2026-0001';
   const COPYRIGHT = '© 2024–2026 ЭСПЦ · Все права защищены';
@@ -483,7 +484,7 @@ input:-webkit-autofill:active{
   <form class="login-box" id="loginForm" autocomplete="off">
     <div class="login-logo">🔬</div>
     <h2>Нормативы ЭСПЦ</h2>
-    <div class="sub">Расширенная версия · <b>Full V7.0</b></div>
+    <div class="sub">Расширенная версия · <b>Full V8.0</b></div>
     <div class="login-error" id="loginError">Неверный логин или пароль</div>
     <div class="login-field"><label>Логин</label><input name="login" id="loginInput" placeholder="Введите логин" required autocomplete="username" autocapitalize="off" spellcheck="false"></div>
     <div class="login-field"><label>Пароль</label><input name="password" id="passwordInput" type="password" placeholder="Введите пароль" required autocomplete="current-password"></div>
@@ -502,20 +503,20 @@ input:-webkit-autofill:active{
 <!-- ═══ APP ═══ -->
 <div class="app hidden" id="app">
   <aside class="sidebar" id="sidebar">
-    <div class="brand"><div class="brand-icon">🔬</div><div class="brand-text"><h1>Нормативы ЭСПЦ</h1><p>Full V7.0 · Профессиональный</p></div></div>
+    <div class="brand"><div class="brand-icon">🔬</div><div class="brand-text"><h1>Нормативы ЭСПЦ</h1><p>Full V8.0 · Профессиональный</p></div></div>
     <div class="nav-scroll" id="navScroll"></div>
-    <div class="sidebar-footer">ЭСПЦ © 2024–2026 · V7.0 <span class="ver">Full</span></div>
+    <div class="sidebar-footer">ЭСПЦ © 2024–2026 · V8.0 <span class="ver">Full</span></div>
   </aside>
   <main class="main">
     <div class="topbar">
       <div class="topbar-title">
         <span class="dot"></span>
         <span id="topbarTitle">Обзор Full</span>
-        <span class="badge-version" id="versionBadge">Full V7.0</span>
+        <span class="badge-version" id="versionBadge">Full V8.0</span>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-ico mob-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
-        <button class="btn btn-ghost" type="button" onclick="switchToLite()" title="Переключиться в Lite-версию">↩ Lite</button>
+        <button class="btn btn-ghost" type="button" onclick="switchToLite()" title="Переключиться в облегчённую версию (Lite)">↩ Lite</button>
         <div class="user-badge" id="userBadge"></div>
         <button class="btn btn-ghost" type="button" onclick="doLogout()">⎋ Выход</button>
       </div>
@@ -733,18 +734,45 @@ input:-webkit-autofill:active{
     function hasRole(role){ const s = currentSession(); if(!s) return false; return ROLES[s.role]?.level >= ROLES[role]?.level; }
     function isAdmin(){ return hasRole('admin'); }
     function isEngineer(){ return hasRole('engineer'); }
-    function listUsers(){ return loadUsers().map(u=>({login:u.login, name:u.name, role:u.role, createdAt:u.createdAt})); }
+    function listUsers(){ return loadUsers().map(u=>({login:u.login, name:u.name, role:u.role, approver:!!u.approver, createdAt:u.createdAt})); }
     function getRawUsers(){ return loadUsers(); }
-    async function addUser({login, name, password, role}){
+    async function addUser({login, name, password, role, approver}){
       if(!login || !name || !password || !role) return {ok:false, msg:'Все поля обязательны'};
       if(!/^[a-zA-Z0-9_]{3,20}$/.test(login)) return {ok:false, msg:'Логин: 3-20 символов'};
       if(password.length < 6) return {ok:false, msg:'Пароль минимум 6 символов'};
       if(!ROLES[role]) return {ok:false, msg:'Неизвестная роль'};
       const users = loadUsers();
       if(users.find(u=>u.login === login)) return {ok:false, msg:'Пользователь уже существует'};
-      users.push({login, name, password: await hashPwd(password), role, createdAt:new Date().toISOString()});
+      if(approver && role !== 'engineer') return {ok:false, msg:'Согласующим назначается только инженер (администратор согласует по умолчанию)'};
+      users.push({login, name, password: await hashPwd(password), role, approver: !!approver, createdAt:new Date().toISOString()});
       saveUsers(users);
       return {ok:true};
+    }
+    // Согласующий нормативов: только инженер (начальник службы тоже инженер с флажком). Назначает только администратор.
+    function setApprover(login, flag){
+      const s = currentSession();
+      if(!s || s.role !== 'admin') return {ok:false, msg:'Назначать согласующих может только администратор'};
+      const users = loadUsers(); const u = users.find(x => x.login === login);
+      if(!u) return {ok:false, msg:'Пользователь не найден'};
+      if(flag && u.role !== 'engineer') return {ok:false, msg:'Согласующим может быть только инженер (администратор согласует по умолчанию)'};
+      u.approver = !!flag; saveUsers(users); return {ok:true};
+    }
+    function isApproverLogin(login){ const u = loadUsers().find(x => x.login === login); return !!(u && u.approver && u.role === 'engineer'); }
+    const normFio = v => String(v||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();
+    // Разовый перенос прежнего списка «Уполномоченные» (по ФИО) в флажки учётных записей инженеров
+    function migrateApprovers(){
+      if(Storage.get('approvers_migrated', false)) return 0;
+      const old = Storage.get('approvers', []); const users = loadUsers(); let n = 0;
+      if(Array.isArray(old)) old.forEach(a => { const u = users.find(x => normFio(x.name) === normFio(a && a.name) && x.role === 'engineer' && !x.approver); if(u){ u.approver = true; n++; } });
+      if(n) saveUsers(users);
+      Storage.set('approvers_migrated', true); return n;
+    }
+    // Восстановление из резервной копии (только администратор): по логину, для старых копий — по ФИО
+    function applyApprovers(list){
+      const s = currentSession(); if(!s || s.role !== 'admin' || !Array.isArray(list)) return 0;
+      const users = loadUsers(); let n = 0;
+      list.forEach(a => { const u = users.find(x => x.role === 'engineer' && ((a.login && x.login === a.login) || (!a.login && normFio(x.name) === normFio(a.name)))); if(u && !u.approver){ u.approver = true; n++; } });
+      if(n) saveUsers(users); return n;
     }
     function removeUser(login){
       const s = currentSession();
@@ -773,7 +801,7 @@ input:-webkit-autofill:active{
       saveUsers(users);
       return {ok:true};
     }
-    return { login, logout, currentSession, hasRole, isAdmin, isEngineer, listUsers, getRawUsers, addUser, removeUser, changePassword, adminResetPassword, migratePasswords, isHashed, ROLES };
+    return { login, logout, currentSession, hasRole, isAdmin, isEngineer, listUsers, getRawUsers, addUser, removeUser, setApprover, isApproverLogin, migrateApprovers, applyApprovers, changePassword, adminResetPassword, migratePasswords, isHashed, ROLES };
   })();
   const Dedup = (() => {
     function normalize(s){ return String(s||'').toLowerCase().trim().replace(/ё/g,'е').replace(/\s+/g,' ').replace(/[^\wа-я0-9 ]/gi,''); }
@@ -1107,22 +1135,56 @@ const BASE_NORMS = N_RAW.map(r => ({
 (function(){ 'use strict';
   const { Bus, Storage, Auth } = ESP;
   const STATUSES={draft:{name:'Черновик',color:'gray',icon:'📝'},review:{name:'На проверке',color:'yellow',icon:'🔍'},approved:{name:'Утверждён',color:'green',icon:'✅'},rejected:{name:'Отклонён',color:'red',icon:'❌'},archived:{name:'В архиве',color:'gray',icon:'📦'}};
-  const TRANSITION_RIGHTS={'draft->review':['user','engineer','admin'],'review->approved':['engineer','admin'],'review->rejected':['engineer','admin'],'approved->archived':['admin'],'rejected->draft':['user','engineer','admin'],'archived->draft':['admin'],'approved->draft':['engineer','admin'],'approved->review':['engineer','admin'],'rejected->review':['engineer','admin']};
-  function canTransition(from,to,role){const a=TRANSITION_RIGHTS[from+'->'+to]; return a?a.includes(role):false;}
-  const STATES_KEY='workflow_states', HISTORY_KEY='workflow_history';
+  // Модель (согласовано): отправка на проверку — админ (любые), планировщик и инженер (только свои); утверждение, возврат на доработку
+  // и переоткрытие утверждённых — только админ и согласующие (APPROVER_ONLY); архив — админ.
+  const TRANSITION_RIGHTS={'draft->review':['user','engineer','admin'],'approved->archived':['admin'],'archived->draft':['admin']};
+  const BASE_DEFAULT_STATUS='approved'; // базовые 112 нормативов считаются утверждёнными, пока их не изменят
+  function isBaseId(id){ try{ return typeof BASE_NORMS!=='undefined' && BASE_NORMS.some(n=>n.id===id); }catch(e){ return false; } }
+  function canTransition(from,to,role){const k=from+'->'+to; if(APPROVER_ONLY.includes(k))return true; const a=TRANSITION_RIGHTS[k]; return a?a.includes(role):false;}
+  const STATES_KEY='workflow_states', HISTORY_KEY='workflow_history', APPROVERS_KEY='approvers';
+  // Утверждать и отклонять могут только администратор и согласующие (инженеры с флажком «Согласующий» в учётной записи).
+  const APPROVER_ONLY=['review->approved','review->draft','approved->draft','approved->review'];
+  function normName(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();}
+  // Согласующие — учётные записи инженеров с флажком «Согласующий» (назначает администратор). Администратор согласует всегда.
+  function getApprovers(){ return Auth.listUsers().filter(u=>u.approver&&u.role==='engineer').map(u=>({login:u.login,name:u.name})); }
+  function isApprover(session){ if(!session)return false; if(session.role==='admin')return true; return Auth.isApproverLogin(session.login); }
+  function checkTransition(from,to,sess,norm){
+    const key=from+'->'+to; if(!sess)return {ok:false,msg:'Нет сессии'};
+    if(APPROVER_ONLY.includes(key))return isApprover(sess)?{ok:true}:{ok:false,msg:'Утверждать, возвращать на доработку и переоткрывать утверждённые нормативы могут только администратор и согласующие'};
+    const roles=TRANSITION_RIGHTS[key]; if(!roles||!roles.includes(sess.role))return {ok:false,msg:'Нет прав: '+sess.role+' не может '+from+' → '+to};
+    if(key==='draft->review'&&(sess.role==='user'||sess.role==='engineer')&&!(norm&&norm.author&&norm.author===sess.login))return {ok:false,msg:'Планировщик и инженер могут отправлять на проверку только свои нормативы'};
+    return {ok:true};
+  }
+  function canTransitionBy(from,to,sess,norm){ return checkTransition(from,to,sess,norm).ok; }
+  // Присваивает новым нормативам статус «Черновик» (одним сохранением, без истории переходов).
+  function init(ids){ const list=(Array.isArray(ids)?ids:[ids]).filter(Boolean); const all=getStates(); const at=new Date().toISOString(), by=Auth.currentSession()?.login||'?'; let ch=false; list.forEach(id=>{ if(!all[id]){ all[id]={status:'draft',updatedAt:at,updatedBy:by}; ch=true; } }); if(ch)saveStates(all); return ch; }
   function getStates(){return Storage.get(STATES_KEY,{});}
   function saveStates(s){Storage.set(STATES_KEY,s);}
   function getHistory(){return Storage.get(HISTORY_KEY,{});}
   function saveHistory(h){Storage.set(HISTORY_KEY,h);}
-  function getState(id){const all=getStates(); return all[id]||{status:'draft',updatedAt:null,updatedBy:null};}
-  function setState(id,state){const all=getStates(); all[id]={status:state,updatedAt:new Date().toISOString(),updatedBy:Auth.currentSession()?.login||'?'}; saveStates(all); Bus.emit('workflow:state-changed',{normId:id,state}); return all[id];}
+  function getState(id){const st=getStates()[id]; if(!st)return {status:isBaseId(id)?BASE_DEFAULT_STATUS:'draft',updatedAt:null,updatedBy:null,returned:false,rejectCount:0}; if(st.status==='rejected')return Object.assign({},st,{status:'draft',returned:true,rejectCount:st.rejectCount||1}); return st;}
+  function setState(id,state,extra){const all=getStates(); all[id]=Object.assign({},all[id]||{},{status:state,updatedAt:new Date().toISOString(),updatedBy:Auth.currentSession()?.login||'?'},extra||{}); saveStates(all); Bus.emit('workflow:state-changed',{normId:id,state}); return all[id];}
   function getNormHistory(id){return getHistory()[id]||[];}
-  function pushHistory(id,from,to,comment){const all=getHistory(); if(!all[id])all[id]=[]; all[id].push({from,to,by:Auth.currentSession()?.login||'?',role:Auth.currentSession()?.role||'?',at:new Date().toISOString(),comment:comment||''}); saveHistory(all);}
-  function transition(id,newStatus,comment){ const cur=getState(id).status; if(cur===newStatus)return {ok:false,msg:'Уже в этом статусе'}; const role=Auth.currentSession()?.role; if(!canTransition(cur,newStatus,role))return {ok:false,msg:'Нет прав: '+role+' не может '+cur+' → '+newStatus}; pushHistory(id,cur,newStatus,comment); setState(id,newStatus); let v=null; if(ESP.Plugins.has('versions')){ const norm=(typeof allNorms==='function'?allNorms():[]).find(n=>n.id===id); if(norm)v=createWorkflowVersion(norm,cur,newStatus,comment); } return {ok:true,from:cur,to:newStatus,version:v}; }
-  const STATUS_COMMENTS={'draft->review':'📤 Отправлено','review->approved':'✅ Утверждено','review->rejected':'❌ Отклонено','approved->archived':'📦 В архив','approved->draft':'🔓 Переоткрыто','approved->review':'🔄 Повторная проверка','rejected->draft':'↩ Возвращено','rejected->review':'📤 Отправлено повторно','archived->draft':'🔄 Из архива'};
+  function pushHistory(id,from,to,comment,extra){const all=getHistory(); if(!all[id])all[id]=[]; all[id].push(Object.assign({from,to,by:Auth.currentSession()?.login||'?',role:Auth.currentSession()?.role||'?',at:new Date().toISOString(),comment:comment||''},extra||{})); saveHistory(all);}
+  function transition(id,newStatus,comment){
+    const st=getState(id); const cur=st.status; if(cur===newStatus)return {ok:false,msg:'Уже в этом статусе'};
+    const sess=Auth.currentSession(); const norm=(typeof allNorms==='function'?allNorms():[]).find(n=>n.id===id);
+    const chk=checkTransition(cur,newStatus,sess,norm); if(!chk.ok)return chk;
+    const isReject=(cur==='review'&&newStatus==='draft'); const extra={};
+    if(isReject){ extra.returned=true; extra.rejectCount=(st.rejectCount||0)+1; extra.rejectReason=String(comment||'').trim(); extra.rejectedBy=sess.login; extra.rejectedAt=new Date().toISOString(); }
+    else if(newStatus==='review'||newStatus==='approved'){ extra.returned=false; }
+    pushHistory(id,cur,newStatus,comment,isReject?{reject:true}:null); setState(id,newStatus,extra);
+    let v=null; if(ESP.Plugins.has('versions')&&norm)v=createWorkflowVersion(norm,cur,newStatus,comment);
+    return {ok:true,from:cur,to:newStatus,version:v};
+  }
+  // «Утвердить сразу» (только администратор): черновик → проверка → утверждён, обе записи остаются в истории.
+  function approveNow(id,comment){ const sess=Auth.currentSession(); if(sess?.role!=='admin')return {ok:false,msg:'Только администратор может утвердить сразу'}; if(!String(comment||'').trim())return {ok:false,msg:'Для «Утвердить сразу» комментарий обязателен'}; const cur=getState(id).status; if(cur==='draft'){ const r=transition(id,'review','Утверждение без очереди: '+String(comment).trim()); if(!r.ok)return r; } else if(cur!=='review')return {ok:false,msg:'Утвердить сразу можно из черновика или с проверки'}; return transition(id,'approved',comment); }
+  // Любая правка норматива возвращает его в «Черновик» с записью в историю (вызывается формой сохранения).
+  function markEdited(id){ const cur=getState(id).status; if(cur==='draft'){ if(!getStates()[id])init(id); return {ok:true,changed:false}; } pushHistory(id,cur,'draft','Правка норматива: возврат в «Черновик»',{edit:true}); setState(id,'draft',{returned:false}); return {ok:true,changed:true,from:cur}; }
+  const STATUS_COMMENTS={'draft->review':'📤 Отправлено','review->approved':'✅ Утверждено','review->rejected':'❌ Отклонено','review->draft':'↩ Возвращено на доработку','approved->archived':'📦 В архив','approved->draft':'🔓 Переоткрыто','approved->review':'🔄 Повторная проверка','rejected->draft':'↩ Возвращено','rejected->review':'📤 Отправлено повторно','archived->draft':'🔄 Из архива'};
   function createWorkflowVersion(norm,fromStatus,toStatus,comment){ const key=fromStatus+'->'+toStatus; let cmt=STATUS_COMMENTS[key]||('Переход '+fromStatus+' → '+toStatus); if(comment&&comment.trim())cmt+=': '+comment.trim(); const v=ESP.Plugins.call('versions','saveVersion',norm,cmt); if(!v)return null; const versions=ESP.Plugins.call('versions','getVersions',norm.id); const last=versions[versions.length-1]; if(last){ last._statusSnapshot=toStatus; last._statusFrom=fromStatus; last._triggeredBy='workflow-transition'; if(toStatus==='approved'){const ap=versions.filter(x=>x._statusSnapshot==='approved'); last._approvedVersionNumber=ap.length;} const all=Storage.get('versions_v2',{}); if(all[norm.id]){all[norm.id][all[norm.id].length-1]=last; Storage.set('versions_v2',all);} } return last; }
   function getStats(){const all=getStates(); const s={draft:0,review:0,approved:0,rejected:0,archived:0}; Object.values(all).forEach(x=>{if(s[x.status]!=null)s[x.status]++;}); return s;}
-  ESP.Plugins.register('workflow',{version:'2.1',STATUSES,TRANSITION_RIGHTS,canTransition,getState,setState,getNormHistory,pushHistory,transition,createWorkflowVersion,getStats,reset(){Storage.remove(STATES_KEY); Storage.remove(HISTORY_KEY);}});
+  ESP.Plugins.register('workflow',{version:'2.3',STATUSES,TRANSITION_RIGHTS,canTransition,canTransitionBy,checkTransition,APPROVER_ONLY,BASE_DEFAULT_STATUS,isApprover,getApprovers,init,markEdited,approveNow,getState,setState,getNormHistory,pushHistory,transition,createWorkflowVersion,getStats,reset(){Storage.remove(STATES_KEY); Storage.remove(HISTORY_KEY);}});
 })();
 
 (function(){ 'use strict';
@@ -1144,7 +1206,7 @@ const BASE_NORMS = N_RAW.map(r => ({
 
 (function(){ ESP.Plugins.register('sources',{version:'1.0',listKnownSources(){return [{code:'ФЕРп-2001',title:'ФЕР',type:'federal',available:true},{code:'ГОСТ Р 56291-2014',title:'Услуги ремонта',type:'gost',available:true},{code:'ФНП Подъёмные сооружения',title:'Приказ Ростехнадзора',type:'safety',available:true},{code:'DIN 8901',title:'Немецкие нормы',type:'international',available:false},{code:'REC-DAN-2024',title:'Danieli',type:'industry',available:false}];}}); })();
 
-(function(){ const SYSTEMS={erp:{name:'ERP-система',icon:'🗄️',description:'Справочники, ремонты'},cmms:{name:'CMMS / EAM',icon:'📊',description:'Планы ТОиР'},scada:{name:'SCADA / MES',icon:'⚡',description:'Наработка, режимы'}}; ESP.Plugins.register('integrations',{version:'1.0',listSystems(){return Object.entries(SYSTEMS).map(([key,s])=>({key,...s}));},testConnection(s){return {ok:false,offline:true,msg:'Backend не подключён'};}}); })();
+(function(){ const SYSTEMS={erp:{name:'ERP-система',icon:'🗄️',description:'Справочники, ремонты'},cmms:{name:'Система ТОиР (CMMS / EAM)',icon:'📊',description:'Планы ТОиР'},scada:{name:'АСУ ТП (SCADA / MES)',icon:'⚡',description:'Наработка, режимы'}}; ESP.Plugins.register('integrations',{version:'1.0',listSystems(){return Object.entries(SYSTEMS).map(([key,s])=>({key,...s}));},testConnection(s){return {ok:false,offline:true,msg:'Backend не подключён'};}}); })();
 
 (function(){ 'use strict';
   const { Storage } = ESP;
@@ -1166,7 +1228,7 @@ const BASE_NORMS = N_RAW.map(r => ({
   function registerFonts(doc){ const F=window.ESP_PDF_FONTS; if(!F||!F.regular) return false; try{ doc.addFileToVFS('DejaVuSans.ttf',F.regular); doc.addFont('DejaVuSans.ttf','DejaVuSans','normal'); const b=F.bold||F.regular; doc.addFileToVFS('DejaVuSans-Bold.ttf',b); doc.addFont('DejaVuSans-Bold.ttf','DejaVuSans','bold'); return true; }catch(e){ console.error('[PDF] Шрифт не зарегистрирован, включён транслит:',e); return false; } }
   function createDoc(orientation='portrait'){ const { jsPDF }=window.jspdf; const doc=new jsPDF({orientation,unit:'mm',format:'a4',compress:true}); const ok=registerFonts(doc); doc.__font=ok?'DejaVuSans':'helvetica'; doc.__useTranslit=!ok; doc.setFont(doc.__font,'normal'); return doc; }
   function cellHook(doc){ return function(d){ if(doc.__useTranslit && d.cell && Array.isArray(d.cell.text)) d.cell.text=d.cell.text.map(t=>safeText(t,doc)); }; }
-  function addHeader(doc,title,sub){ const w=doc.internal.pageSize.getWidth(); doc.setFillColor(30,58,138); doc.rect(0,0,w,22,'F'); doc.setFillColor(79,70,229); doc.rect(0,22,w,2,'F'); doc.setTextColor(255,255,255); setFont(doc,'bold'); doc.setFontSize(14); doc.text(safeText(title,doc),12,11); setFont(doc,'normal'); doc.setFontSize(9); doc.setTextColor(200,210,230); doc.text(safeText(sub,doc),12,17); doc.setFontSize(8); doc.text(safeText(new Date().toLocaleString('ru-RU'),doc),w-12,11,{align:'right'}); doc.text('Full V7.0',w-12,17,{align:'right'}); return 28; }
+  function addHeader(doc,title,sub){ const w=doc.internal.pageSize.getWidth(); doc.setFillColor(30,58,138); doc.rect(0,0,w,22,'F'); doc.setFillColor(79,70,229); doc.rect(0,22,w,2,'F'); doc.setTextColor(255,255,255); setFont(doc,'bold'); doc.setFontSize(14); doc.text(safeText(title,doc),12,11); setFont(doc,'normal'); doc.setFontSize(9); doc.setTextColor(200,210,230); doc.text(safeText(sub,doc),12,17); doc.setFontSize(8); doc.text(safeText(new Date().toLocaleString('ru-RU'),doc),w-12,11,{align:'right'}); doc.text('Full V8.0',w-12,17,{align:'right'}); return 28; }
   function addFooters(doc){ const p=doc.internal.getNumberOfPages(); const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight(); for(let i=1;i<=p;i++){ doc.setPage(i); doc.setDrawColor(200,210,220); doc.setLineWidth(0.3); doc.line(12,h-12,w-12,h-12); setFont(doc,'normal'); doc.setFontSize(7.5); doc.setTextColor(120,130,140); doc.text(safeText('Система нормативов ЭСПЦ',doc),12,h-7); doc.text(safeText('Автор: '+(Auth.currentSession()?.login||'?'),doc),w/2,h-7,{align:'center'}); doc.text(safeText('Стр. '+i+' из '+p,doc),w-12,h-7,{align:'right'}); } }
   function buildFilename(p,ext='pdf'){return p+'_'+new Date().toISOString().slice(0,10)+'.'+ext;}
   function exportTechCardPDF(card){ if(!isAvailable())return {ok:false,msg:'jsPDF не загружен'}; if(!card)return {ok:false,msg:'Карта не указана'}; const doc=createDoc('landscape'); const FONT=doc.__font; let y=addHeader(doc,'ТЕХНОЛОГИЧЕСКАЯ КАРТА',card.cardNumber+' — '+card.equipmentName); const all=typeof allNorms==='function'?allNorms():[]; const rows=card.operations.map((op,i)=>{const n=all.find(x=>x.id===op.normativeId); if(!n)return null; return [String(i+1),n.operationCode,n.operationName,n.tm||'—',String(n.normValue),n.unit,String(op.quantity),String(n.normValue*op.quantity),String(n.teamSize),n.qualification||'—'];}).filter(Boolean); doc.autoTable({didParseCell:cellHook(doc),startY:y,head:[['№','Код','Операция','ТМ','Норма','Ед.','Кол-во','Итого','Бриг.','Разряд']],body:rows,styles:{font:FONT,fontSize:7,cellPadding:1.5,overflow:'linebreak',textColor:[51,65,85]},headStyles:{fillColor:[30,58,138],textColor:[255,255,255],fontSize:7.5,fontStyle:'bold',halign:'center',font:FONT},foot:[['','','ИТОГО:','','','','',String(card.totalHours),'','']],footStyles:{fillColor:[241,245,249],textColor:[30,58,138],fontStyle:'bold',fontSize:9,font:FONT}}); addFooters(doc); const fn='ТК_'+String(card.cardNumber).replace(/[^\wа-яёА-ЯЁ-]/g,'_')+'.pdf'; doc.save(fn); return {ok:true,filename:fn,pages:doc.internal.getNumberOfPages(),cyrillic:!doc.__useTranslit}; }
@@ -1202,18 +1264,103 @@ const state = {
   editingNormId: null,
   editingEquipId: null,
   // ═══ НОВОЕ: метаданные нормативов (norm_id, source_document, maintenance_strategy, labor_breakdown, ...) ═══
-  normMeta: Storage.get('norm_meta', {})
+  normMeta: Storage.get('norm_meta', {}),
+  baseOverrides: Storage.get('base_overrides', {})
 };
 // Сохранение пользовательских данных в localStorage (ключи: esp_custom, esp_equip, esp_cards, esp_norm_meta).
 // Раньше эти функции вызывались, но не были определены (ReferenceError), поэтому правки не сохранялись.
 function saveCustom(){ return Storage.set('custom', state.custom); }
+// ═══ Русские названия для значений (внутри хранятся и в SAP уходят прежние технические коды) ═══
+const NORM_STATUS_RU = { active:'Действующий', draft:'Проект', obsolete:'Устаревший' };
+const MAINT_TYPE_RU  = { periodic:'Периодическое', condition_based:'По техническому состоянию', corrective:'Корректирующее (внеплановое)' };
+const UNIT_RU        = { month:'месяц', hour:'час', day:'сутки', week:'неделя', year:'год', tonnage:'тонн (по наработке)' };
+const UNIT_SHORT     = { month:'мес.', hour:'ч', day:'сут.', week:'нед.', year:'г.', tonnage:'т' };
+const PLUGIN_RU = { 'import-pro':'Импорт PRO', 'dedup-hard':'Жёсткая проверка дублей', 'ml':'Прогноз (ML)', 'workflow':'Согласование', 'versions':'Версии', 'analytics':'Аналитика', 'sources':'Источники', 'integrations':'Интеграции', 'excel-export':'Экспорт в Excel', 'pdf-export':'Экспорт в PDF' };
+function ruPlugin(id){ return PLUGIN_RU[id] || id; }
+
+// ═══ JSON на русском: принимаются русские и английские ключи, хранится канонический английский вид (интерфейс SAP) ═══
+const JSON_KEYS = {
+  operation_name:['наименование_операции','название_операции','операция'],
+  sub_operations:['подоперации','работы'],
+  name:['наименование','название'],
+  labor_hours:['нормо_часы','трудозатраты_ч','трудозатраты'],
+  total_labor_hours:['итого_нормо_часов','всего_нормо_часов','итого_трудозатрат'],
+  materials:['материалы'],
+  quantity:['количество','кол_во','расход'],
+  unit:['единица','ед_изм','единица_измерения'],
+  description:['описание'],
+  qualification:['профессия','квалификация'],
+  grade:['разряд'],
+  count:['человек','численность','чел'],
+  hours:['часы','длительность_ч']
+};
+const _jkNorm = k => String(k).toLowerCase().replace(/ё/g,'е').replace(/[\s\-]+/g,'_').trim();
+const _RU2EN = {}, _EN2RU = {};
+Object.entries(JSON_KEYS).forEach(([en, ruList]) => { _EN2RU[en] = ruList[0]; ruList.forEach(r => { _RU2EN[_jkNorm(r)] = en; }); });
+// ctx 'labor' — состав бригады: «количество» понимается как число человек
+function jsonToCanonical(v, ctx){
+  if(Array.isArray(v)) return v.map(x => jsonToCanonical(x, ctx));
+  if(v && typeof v === 'object'){
+    const o = {};
+    Object.keys(v).forEach(k => {
+      const nk = _jkNorm(k);
+      const key = (ctx === 'labor' && nk === 'количество') ? 'count' : (_RU2EN[nk] || k);
+      o[key] = jsonToCanonical(v[k], ctx);
+    });
+    return o;
+  }
+  return v;
+}
+function jsonToRussian(v, ctx){
+  if(Array.isArray(v)) return v.map(x => jsonToRussian(x, ctx));
+  if(v && typeof v === 'object'){
+    const o = {};
+    Object.keys(v).forEach(k => { o[(ctx === 'labor' && k === 'count') ? 'человек' : (_EN2RU[k] || k)] = jsonToRussian(v[k], ctx); });
+    return o;
+  }
+  return v;
+}
+// Разбор JSON-поля с понятной русской диагностикой (строка и столбец ошибки, замена типографских кавычек)
+function parseJsonField(raw, label, ctx){
+  const text = String(raw).replace(/[“”„‟]/g, '"');
+  try { return { ok:true, value: jsonToCanonical(JSON.parse(text), ctx) }; }
+  catch(e){
+    let where = '';
+    const m = /position (\d+)/.exec(e.message || '');
+    if(m){ const pos = +m[1]; const before = text.slice(0, pos).split('\n'); where = ' (строка ' + before.length + ', столбец ' + (before[before.length-1].length + 1) + ')'; }
+    return { ok:false, msg: label + ': неверный формат JSON' + where + '. Проверьте кавычки, запятые между элементами и закрывающие скобки. Названия ключей и текстовые значения берутся в обычные прямые кавычки "' };
+  }
+}
+// Длительность операции, ч: хранимая или (для прежних нормативов) норматив ÷ бригада.
+function normDuration(n){
+  if(n && n.durationHours > 0) return n.durationHours;
+  return (n && n.teamSize > 0 && n.normValue > 0) ? +(n.normValue / n.teamSize).toFixed(2) : null;
+}
+function saveBaseOverrides(){ return Storage.set('base_overrides', state.baseOverrides); }
+// Права на правку: админ — всё (кроме архива); инженер — любые пользовательские; планировщик (user) — только свои.
+// Базовые нормативы правит только админ. Норматив «на проверке» правит только админ (правка вернёт его в «Черновик»).
+function editDenyReason(norm, sess){
+  sess = sess || Auth.currentSession();
+  if(!sess) return 'Войдите в систему';
+  if(!norm) return 'Норматив не найден';
+  const st = Plugins.call('workflow','getState',norm.id).status;
+  if(sess.role === 'admin') return st === 'archived' ? 'Норматив в архиве: сначала верните его из архива' : '';
+  if(BASE_NORMS.some(x => x.id === norm.id)) return 'Только администратор может редактировать базовые нормативы';
+  if(st === 'review') return 'Норматив на проверке: правка недоступна';
+  if(st === 'archived') return 'Норматив в архиве: правка недоступна';
+  if(sess.role === 'engineer') return '';
+  if(sess.role === 'user') return (norm.author && norm.author === sess.login) ? '' : 'Планировщик может редактировать только свои нормативы';
+  return 'Недостаточно прав для редактирования';
+}
+function canEditNorm(norm, sess){ return !editDenyReason(norm, sess); }
 function saveEquip(){ return Storage.set('equip', state.customEquip); }
 function saveCards(){ return Storage.set('cards', state.cards); }
 function saveNormMeta(){ return Storage.set('norm_meta', state.normMeta); }
 function allNorms(){
   const merged = [...BASE_NORMS, ...state.custom].map(n => {
+    const ov = state.baseOverrides[n.id];   // правки базовых нормативов (слой поверх BASE_NORMS, без дублей)
     const meta = state.normMeta[n.id];
-    return meta ? { ...n, ...meta } : n;
+    return (ov || meta) ? { ...n, ...(ov || {}), ...(meta || {}), ...(ov ? {_baseEdited:true} : {}) } : n;
   });
   return merged;
 }
@@ -1335,7 +1482,7 @@ function renderNormsList(list){
   if(!list.length) return '<div class="empty"><div class="empty-ico">🔍</div>Ничего не найдено</div>';
   
   // Проверяем права: администратор или инженер
-  const canEdit = Auth.hasRole('engineer');
+  const canEdit = !!Auth.currentSession();
   
   return list.map(n => {
     const inCalc = state.calc.some(c => c.norm.id === n.id);
@@ -1369,9 +1516,10 @@ function renderNormsList(list){
         <span class="chip chip-cyan">Сложность ${n.complexity}/5</span>
         <span class="chip chip-blue">${n.teamSize} чел.</span>
         <span class="chip chip-green">${Utils.escapeHtml(n.sourceCode)}</span>
-        ${n.norm_id ? `<span class="chip chip-orange" title="norm_id">${Utils.escapeHtml(n.norm_id)}</span>` : ''}
-        ${n.maintenance_strategy?.interval_value ? `<span class="chip chip-yellow">${n.maintenance_strategy.interval_value} ${n.maintenance_strategy.interval_unit}</span>` : ''}
-        ${Array.isArray(n.labor_breakdown) && n.labor_breakdown.length ? `<span class="chip chip-cyan">${n.labor_breakdown.reduce((a,b)=>a+(b.count||0),0)} чел. в breakdown</span>` : ''}
+        ${n.norm_id ? `<span class="chip chip-orange" title="Код норматива">${Utils.escapeHtml(n.norm_id)}</span>` : ''}
+        ${n.maintenance_strategy?.interval_value ? `<span class="chip chip-yellow">${n.maintenance_strategy.interval_value} ${UNIT_SHORT[n.maintenance_strategy.interval_unit] || n.maintenance_strategy.interval_unit}</span>` : ''}
+        ${normDuration(n) != null ? `<span class="chip chip-cyan">⏱ ${normDuration(n)} ч</span>` : ''}
+  ${Array.isArray(n.labor_breakdown) && n.labor_breakdown.length ? `<span class="chip chip-cyan">${n.labor_breakdown.reduce((a,b)=>a+(b.count||0),0)} чел. в breakdown</span>` : ''}
         ${n.consistency_check === true ? `<span class="chip chip-green">✓ consistent</span>` : (n.consistency_check === false ? `<span class="chip chip-red">✕ inconsistent</span>` : '')}
       </div>
     </div>`;
@@ -1383,6 +1531,11 @@ function attachNormEvents(){
   bindNormAddButtons();
   const pdfBtn = document.getElementById('normsExportPDF');
   if(pdfBtn) pdfBtn.onclick = () => {
+    const filtered = getFiltered();
+    if(!filtered.length){ showToast('Нет данных', 'warn'); return; }
+    const r = Plugins.call('pdf-export','exportNormsRegistryPDF', filtered);
+    if(r && r.ok) showToast('PDF: ' + r.count + ' записей', 'ok', 4000); else showToast('Ошибка: ' + (r?.msg||'jsPDF не загружен'), 'err');
+  };
     const sapBtn = document.getElementById('normsExportSAP');
   if(sapBtn) sapBtn.onclick = () => {
     const filtered = getFiltered();
@@ -1412,11 +1565,6 @@ function attachNormEvents(){
     const csv = '\uFEFF' + headers.join(';') + '\n' + rows.join('\n');
     Utils.download('norms_import_' + new Date().toISOString().slice(0,10) + '.csv', csv, 'text/csv');
     showToast('CSV: ' + filtered.length + ' строк', 'ok');
-  };
-const filtered = getFiltered();
-    if(!filtered.length){ showToast('Нет данных', 'warn'); return; }
-    const r = Plugins.call('pdf-export','exportNormsRegistryPDF', filtered);
-    if(r && r.ok) showToast('PDF: ' + r.count + ' записей', 'ok', 4000); else showToast('Ошибка: ' + (r?.msg||'jsPDF не загружен'), 'err');
   };
 }
 function bindNormAddButtons(){
@@ -1451,26 +1599,18 @@ function bindNormAddButtons(){
     }
     if(editBtn){
       e.stopPropagation();
-      const id = editBtn.dataset.normEdit;
-      // Если норматив базовый (BASE_NORMS), копируем его в custom для редактирования
-      const isBase = BASE_NORMS.some(x => x.id === id);
-      if(isBase){
-        if(!confirm('Это базовый норматив. Его изменение создаст пользовательскую копию. Продолжить?')) return;
-        const original = BASE_NORMS.find(x => x.id === id);
-        const copy = JSON.parse(JSON.stringify(original));
-        copy.id = Utils.uid('custom');
-        copy.isCustom = true;
-        copy.operationCode = copy.operationCode + '-COPY';
-        state.custom.push(copy);
-        saveCustom();
-        state.editingNormId = copy.id;
-      } else {
-        state.editingNormId = id;
-      }
-      state.tab = 'add';
-      renderNav(); renderChat();
+      openNormEditor(editBtn.dataset.normEdit);
     }
   };
+}
+// Открывает форму правки норматива. Используется из списка нормативов и из вкладки «Согласование».
+function openNormEditor(id){
+  const norm = allNorms().find(n => n.id === id);
+  const why = editDenyReason(norm);
+  if(why){ showToast(why, 'warn'); return; }
+  state.editingNormId = id;
+  state.tab = 'add';
+  renderNav(); renderChat();
 }
   function refreshNormsList(){
   const box = document.getElementById('normsListBox');
@@ -1549,7 +1689,7 @@ function tabStatistics(){
 /* ═══ ФОРМА НОРМАТИВА ═══ */
 function tabAdd(){
   const isEdit = !!state.editingNormId;
-  appendMsg('<div class="bubble-title">' + (isEdit ? '✏️ Редактировать норматив' : '➕ Добавить норматив') + '</div><div class="bubble-sub">HARD-дедупликация</div><div id="addFormWarn"></div><form id="addForm"><div class="form-sec-title">📋 Основная</div><div class="form-row"><div class="form-group"><label class="form-lbl">Код *</label><input class="form-inp" name="operationCode" required autocapitalize="characters" spellcheck="false" placeholder="ДСП-Н-026"></div><div class="form-group"><label class="form-lbl">Участок *</label><select class="form-sel" name="section">' + Object.entries(SECTION_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-group"><label class="form-lbl">Наименование *</label><input class="form-inp" name="operationName" required placeholder="Замена/ремонт..."></div><div class="form-row"><div class="form-group"><label class="form-lbl">Категория *</label><select class="form-sel" name="equipmentCategory">' + Object.entries(CATEGORY_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Тип ремонта</label><select class="form-sel" name="repairType">' + Object.entries(REPAIR_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип оборудования *</label><input class="form-inp" name="equipmentType" required placeholder="Электродуговая печь"></div><div class="form-group"><label class="form-lbl">Единица</label><input class="form-inp" name="equipmentUnit" placeholder="ДСП-100"></div></div><div class="form-sec-title">🏷️ ТМ</div><div class="form-group"><label class="form-lbl">Код ТМ</label><input class="form-inp tm" name="tm" id="tmInput" maxlength="28" autocomplete="off" inputmode="numeric" placeholder="1201-210-010-010"><div class="form-hint" id="tmHint">Формат: <code>1201-XXX-XXX-XXX-XXX-XXX-XXX</code></div></div><div class="form-sec-title">📐 Норматив</div><div class="form-row"><div class="form-group"><label class="form-lbl">Чел-час *</label><input class="form-inp" type="number" name="normValue" min="0.1" step="0.5" required inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Бригада</label><input class="form-inp" type="number" name="teamSize" value="2" min="1" inputmode="numeric"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Квалификация</label><input class="form-inp" name="qualification" placeholder="4-5 разряд"></div><div class="form-group"><label class="form-lbl">Сложность</label><select class="form-sel" name="complexity">' + [1,2,3,4,5].map(i => '<option value="'+i+'" '+(i===3?'selected':'')+'>'+i+'</option>').join('') + '</select></div></div><div class="form-sec-title">📑 Источник</div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип</label><select class="form-sel" name="sourceType">' + Object.entries(SOURCE_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Код</label><input class="form-inp" name="sourceCode" placeholder="ФЕРп-2001 т.18"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Достоверность</label><input class="form-inp" type="number" name="confidenceLevel" value="0.85" min="0" max="1" step="0.05" inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Описание</label><input class="form-inp" name="description"></div></div><div class="form-sec-title">🧾 Доп. поля норматива (SAP PM/ТОРО)</div><div class="form-row"><div class="form-group"><label class="form-lbl">norm_id</label><input class="form-inp" name="norm_id" placeholder="1201-XXX-...-OP-001"><div class="form-hint">Оставьте пустым — сгенерируется из ТМ</div></div><div class="form-group"><label class="form-lbl">Версия</label><input class="form-inp" type="number" name="norm_version" value="1" min="1" inputmode="numeric"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип источника</label><input class="form-inp" name="source_doc_type" value="ТТК"></div><div class="form-group"><label class="form-lbl">Номер ТТК</label><input class="form-inp" name="source_doc_number" placeholder="90-1Z14-..."></div></div><div class="form-group"><label class="form-lbl">Название ТТК</label><input class="form-inp" name="source_doc_title"></div><div class="form-row"><div class="form-group"><label class="form-lbl">Действует с</label><input class="form-inp" type="date" name="valid_from"></div><div class="form-group"><label class="form-lbl">Действует до</label><input class="form-inp" type="date" name="valid_to"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Статус</label><select class="form-sel" name="status"><option value="active">active</option><option value="draft">draft</option><option value="obsolete">obsolete</option></select></div><div class="form-group"><label class="form-lbl">Тип ТО</label><select class="form-sel" name="maintenance_type"><option value="periodic">periodic</option><option value="condition_based">condition_based</option><option value="corrective">corrective</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Периодичность</label><input class="form-inp" type="number" name="interval_value" step="0.1" min="0" placeholder="6"></div><div class="form-group"><label class="form-lbl">Ед. периодичности</label><select class="form-sel" name="interval_unit"><option value="month">month</option><option value="hour">hour</option><option value="day">day</option><option value="week">week</option><option value="year">year</option><option value="tonnage">tonnage</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Календарных часов</label><input class="form-inp" type="number" name="calendar_hours" step="0.1" min="0" inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Крит. путь, ч</label><input class="form-inp" type="number" name="critical_path_hours" step="0.1" min="0" inputmode="decimal"></div></div><div class="form-group"><label class="form-lbl">labor_breakdown (JSON)</label><textarea class="form-ta" name="labor_breakdown" placeholder=\'[{"qualification":"слесарь-ремонтник","grade":5,"count":2,"hours":8.0}]\'></textarea></div><div class="form-group"><label class="form-lbl">operation_details (JSON)</label><textarea class="form-ta" name="operation_details" placeholder=\'{"operation_name":"...","sub_operations":[...],"materials":[...]}\'></textarea></div><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="addFormReset">Сбросить</button><button type="submit" class="btn btn-orange">💾 Сохранить</button></div></form>').then(() => {
+  appendMsg('<div class="bubble-title">' + (isEdit ? '✏️ Редактировать норматив' : '➕ Добавить норматив') + '</div><div class="bubble-sub">Жёсткая проверка дублей</div><div id="addFormWarn"></div><form id="addForm"><div class="form-sec-title">📋 Основная</div><div class="form-row"><div class="form-group"><label class="form-lbl">Код *</label><input class="form-inp" name="operationCode" required autocapitalize="characters" spellcheck="false" placeholder="ДСП-Н-026"></div><div class="form-group"><label class="form-lbl">Участок *</label><select class="form-sel" name="section">' + Object.entries(SECTION_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-group"><label class="form-lbl">Наименование *</label><input class="form-inp" name="operationName" required placeholder="Замена/ремонт..."></div><div class="form-row"><div class="form-group"><label class="form-lbl">Категория *</label><select class="form-sel" name="equipmentCategory">' + Object.entries(CATEGORY_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Тип ремонта</label><select class="form-sel" name="repairType">' + Object.entries(REPAIR_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип оборудования *</label><input class="form-inp" name="equipmentType" required placeholder="Электродуговая печь"></div><div class="form-group"><label class="form-lbl">Единица</label><input class="form-inp" name="equipmentUnit" placeholder="ДСП-100"></div></div><div class="form-sec-title">🏷️ ТМ</div><div class="form-group"><label class="form-lbl">Код ТМ</label><input class="form-inp tm" name="tm" id="tmInput" maxlength="28" autocomplete="off" inputmode="numeric" placeholder="1201-210-010-010"><div class="form-hint" id="tmHint">Формат: <code>1201-XXX-XXX-XXX-XXX-XXX-XXX</code></div></div><div class="form-sec-title">📐 Норматив: длительность и состав бригады</div><div class="form-group"><label class="form-lbl">Длительность операции, ч *</label><input class="form-inp" type="number" name="durationHours" min="0.1" step="any" required inputmode="decimal" placeholder="Например 6"></div><div class="form-group"><label class="form-lbl">Состав бригады * (разряд — не ниже указанного)</label><div id="crewRows"></div><button class="btn btn-ghost btn-xs" type="button" id="crewAdd">➕ Добавить квалификацию</button><datalist id="profList"><option value="слесарь-ремонтник"><option value="электромонтёр"><option value="электрогазосварщик"><option value="стропальщик"><option value="машинист крана"><option value="наладчик КИПиА"><option value="футеровщик"><option value="огнеупорщик"><option value="такелажник"><option value="токарь"></datalist></div><div id="crewSummary" style="padding:10px 12px;border-radius:8px;background:rgba(59,130,246,.10);border:1px solid #3b82f655;margin-bottom:12px;font-size:13px"></div><div class="form-row"><div class="form-group"><label class="form-lbl">Чел-час (авто)</label><input class="form-inp" type="number" name="normValue" min="0.1" step="any" required readonly inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Бригада, чел. (авто)</label><input class="form-inp" type="number" name="teamSize" value="2" min="1" readonly inputmode="numeric"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Квалификация (авто)</label><input class="form-inp" name="qualification" readonly placeholder="Формируется из состава бригады"></div><div class="form-group"><label class="form-lbl">Сложность</label><select class="form-sel" name="complexity">' + [1,2,3,4,5].map(i => '<option value="'+i+'" '+(i===3?'selected':'')+'>'+i+'</option>').join('') + '</select></div></div><div class="form-sec-title">📑 Источник</div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип</label><select class="form-sel" name="sourceType">' + Object.entries(SOURCE_NAMES).map(([k,v]) => '<option value="'+k+'">'+v+'</option>').join('') + '</select></div><div class="form-group"><label class="form-lbl">Код</label><input class="form-inp" name="sourceCode" placeholder="ФЕРп-2001 т.18"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Достоверность</label><input class="form-inp" type="number" name="confidenceLevel" value="0.85" min="0" max="1" step="any" inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Описание</label><input class="form-inp" name="description"></div></div><div class="form-sec-title">🧾 Доп. поля норматива (SAP PM/ТОРО)</div><div class="form-row"><div class="form-group"><label class="form-lbl">Код норматива</label><input class="form-inp" name="norm_id" placeholder="1201-XXX-...-OP-001"><div class="form-hint">Оставьте пустым — сгенерируется из ТМ</div></div><div class="form-group"><label class="form-lbl">Версия</label><input class="form-inp" type="number" name="norm_version" value="1" min="1" inputmode="numeric"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Тип документа-основания</label><input class="form-inp" name="source_doc_type" value="ТТК"></div><div class="form-group"><label class="form-lbl">Номер ТТК</label><input class="form-inp" name="source_doc_number" placeholder="90-1Z14-..."></div></div><div class="form-group"><label class="form-lbl">Название ТТК</label><input class="form-inp" name="source_doc_title"></div><div class="form-row"><div class="form-group"><label class="form-lbl">Действует с</label><input class="form-inp" type="date" name="valid_from"></div><div class="form-group"><label class="form-lbl">Действует до</label><input class="form-inp" type="date" name="valid_to"></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Статус</label><select class="form-sel" name="status"><option value="active">Действующий</option><option value="draft">Проект</option><option value="obsolete">Устаревший</option></select></div><div class="form-group"><label class="form-lbl">Тип ТО</label><select class="form-sel" name="maintenance_type"><option value="periodic">Периодическое</option><option value="condition_based">По техническому состоянию</option><option value="corrective">Корректирующее (внеплановое)</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Периодичность</label><input class="form-inp" type="number" name="interval_value" step="0.1" min="0" placeholder="6"></div><div class="form-group"><label class="form-lbl">Ед. периодичности</label><select class="form-sel" name="interval_unit"><option value="month">месяц</option><option value="hour">час</option><option value="day">сутки</option><option value="week">неделя</option><option value="year">год</option><option value="tonnage">тонн (по наработке)</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Календарных часов</label><input class="form-inp" type="number" name="calendar_hours" step="0.1" min="0" inputmode="decimal"></div><div class="form-group"><label class="form-lbl">Крит. путь, ч</label><input class="form-inp" type="number" name="critical_path_hours" step="0.1" min="0" inputmode="decimal"></div></div><div class="form-group" style="display:none"><label class="form-lbl">Состав бригады (формируется автоматически)</label><textarea class="form-ta" name="labor_breakdown" placeholder=\'[{"профессия":"слесарь-ремонтник","разряд":5,"человек":2,"часы":8}]\'></textarea></div><div class="form-group"><label class="form-lbl">Состав работ (JSON, ключи можно писать по-русски)</label><textarea class="form-ta" name="operation_details" placeholder=\'{"наименование_операции":"...","подоперации":[{"наименование":"...","нормо_часы":2}],"материалы":[{"наименование":"...","количество":1,"единица":"шт."}]}\'></textarea><div class="form-hint">Допустимые ключи: наименование_операции, подоперации (наименование, нормо_часы), материалы (наименование, количество, единица), итого_нормо_часов. Названия ключей и текст берутся в прямые кавычки ". Поле необязательное.</div><button class="btn btn-ghost btn-xs" type="button" id="odExample">📋 Вставить пример</button></div><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="addFormReset">Сбросить</button><button type="submit" class="btn btn-orange">💾 Сохранить</button></div></form>').then(() => {
     const form = document.getElementById('addForm');
     const tmInp = document.getElementById('tmInput');
     const tmHint = document.getElementById('tmHint');
@@ -1569,16 +1709,26 @@ function tabAdd(){
       meta.calendar_hours = n('calendar_hours');
       meta.critical_path_hours = n('critical_path_hours');
       const lbRaw = s('labor_breakdown');
-      if(lbRaw){ try{ meta.labor_breakdown = JSON.parse(lbRaw); } catch(e){ return { ok:false, msg:'labor_breakdown: невалидный JSON' }; } } else { meta.labor_breakdown = []; }
+      if(lbRaw){ const pj = parseJsonField(lbRaw, 'Состав бригады', 'labor'); if(!pj.ok) return pj; meta.labor_breakdown = pj.value; } else { meta.labor_breakdown = []; }
       const odRaw = s('operation_details');
-      if(odRaw){ try{ meta.operation_details = JSON.parse(odRaw); } catch(e){ return { ok:false, msg:'operation_details: невалидный JSON' }; } } else { meta.operation_details = null; }
+      if(odRaw){ const pj = parseJsonField(odRaw, 'Состав работ', 'od'); if(!pj.ok) return pj; meta.operation_details = pj.value; } else { meta.operation_details = null; }
       meta.consistency_check = null;
       if(meta.operation_details && Array.isArray(meta.operation_details.sub_operations)){
         const sumSub = meta.operation_details.sub_operations.reduce((acc,s) => acc + (parseFloat(s.labor_hours)||0), 0);
         const total = meta.operation_details.total_labor_hours;
         meta.consistency_check = (total != null) ? Math.abs(sumSub - total) < 0.01 : null;
-        if(meta.consistency_check === false){ return { ok:false, msg:'consistency: сумма sub_operations ('+sumSub+') ≠ total_labor_hours ('+total+')' }; }
+        if(meta.consistency_check === false){ return { ok:false, msg:'Состав работ: сумма трудозатрат подопераций ('+sumSub+') ≠ «итого нормо-часов» ('+total+')' }; }
       }
+      // Проверка модели «Норматив = бригада × длительность»
+      const nv = n('normValue');
+      if(Array.isArray(meta.labor_breakdown) && meta.labor_breakdown.length && nv != null){
+        const sumLb = meta.labor_breakdown.reduce((a, r) => a + (parseFloat(r.count) || 0) * (parseFloat(r.hours) || 0), 0);
+        if(Math.abs(sumLb - nv) > 0.01) return { ok:false, msg:'Состав бригады: сумма «человек × часы» (' + +sumLb.toFixed(2) + ') ≠ норматив (' + nv + ')' };
+      }
+      if(meta.operation_details && meta.operation_details.total_labor_hours != null && nv != null && Math.abs(parseFloat(meta.operation_details.total_labor_hours) - nv) > 0.01){
+        return { ok:false, msg:'Состав работ: «итого нормо-часов» (' + meta.operation_details.total_labor_hours + ') ≠ норматив (' + nv + ' = бригада × длительность)' };
+      }
+      if(meta.consistency_check === null && Array.isArray(meta.labor_breakdown) && meta.labor_breakdown.length) meta.consistency_check = true;
       return { ok:true, meta };
     }
 
@@ -1611,7 +1761,7 @@ function tabAdd(){
         if(n.calendar_hours) form.querySelector('[name="calendar_hours"]').value = n.calendar_hours;
         if(n.critical_path_hours) form.querySelector('[name="critical_path_hours"]').value = n.critical_path_hours;
         if(n.labor_breakdown) form.querySelector('[name="labor_breakdown"]').value = JSON.stringify(n.labor_breakdown, null, 2);
-        if(n.operation_details) form.querySelector('[name="operation_details"]').value = JSON.stringify(n.operation_details, null, 2);
+        if(n.operation_details) form.querySelector('[name="operation_details"]').value = JSON.stringify(jsonToRussian(n.operation_details, 'od'), null, 2);
         const submitBtn = form.querySelector('button[type="submit"]');
         if(submitBtn) submitBtn.textContent = '💾 Обновить';
         tmInp.dispatchEvent(new Event('input'));
@@ -1626,37 +1776,112 @@ function tabAdd(){
       else { tmInp.classList.add('err'); tmInp.classList.remove('ok'); tmHint.className = 'form-hint err'; tmHint.textContent = '✕ ' + r.msg; }
     });
     form.querySelector('#addFormReset').onclick = () => { form.reset(); tmInp.classList.remove('err','ok'); tmHint.className = 'form-hint'; tmHint.innerHTML = defHint; document.getElementById('addFormWarn').innerHTML = ''; };
+    // ═══ Модель операции: Норматив = (всего человек) × Длительность. Длительность одна на операцию. ═══
+    const crewBox = document.getElementById('crewRows'), crewSum = document.getElementById('crewSummary');
+    function crewRowHtml(r){
+      return '<div class="crew-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap"><input class="form-inp" data-crew="prof" list="profList" placeholder="Профессия (необязательно)" value="' + Utils.escapeHtml(r.qualification || '') + '" style="flex:2;min-width:150px"><select class="form-sel" data-crew="grade" style="flex:1;min-width:96px">' + [1,2,3,4,5,6].map(g => '<option value="' + g + '"' + (+r.grade === g ? ' selected' : '') + '>' + g + ' разряд</option>').join('') + '</select><input class="form-inp" type="number" data-crew="count" min="1" step="1" value="' + (r.count || 1) + '" style="width:84px" title="Человек"><button class="btn btn-danger btn-xs" type="button" data-crew-del title="Убрать строку">✕</button></div>';
+    }
+    function readCrew(){
+      return [...crewBox.querySelectorAll('.crew-row')].map(row => ({
+        qualification: row.querySelector('[data-crew="prof"]').value.trim(),
+        grade: parseInt(row.querySelector('[data-crew="grade"]').value) || 0,
+        count: parseInt(row.querySelector('[data-crew="count"]').value) || 0
+      }));
+    }
+    function recalcCrew(note){
+      const dur = parseFloat(form.elements['durationHours'].value);
+      const crew = readCrew();
+      const people = crew.reduce((a, r) => a + (r.count > 0 ? r.count : 0), 0);
+      const ok = dur > 0 && people > 0 && crew.every(r => r.count >= 1 && r.grade >= 1 && r.grade <= 6);
+      const total = ok ? +(people * dur).toFixed(2) : null;
+      form.elements['teamSize'].value = people || '';
+      form.elements['normValue'].value = ok ? total : '';
+      form.elements['qualification'].value = crew.filter(r => r.count > 0).map(r => r.count + '×' + r.grade + 'р').join(' + ');
+      crewSum.innerHTML = ok
+        ? '👥 Всего <b>' + people + '</b> чел. × <b>' + dur + '</b> ч = <b>' + total + '</b> чел-ч' + (note || '')
+        : '⚠ Укажите длительность (больше 0) и состав бригады: у каждой строки не менее 1 человека' + (note || '');
+      return {ok, crew, dur, people, total};
+    }
+    crewBox.addEventListener('input', () => recalcCrew());
+    crewBox.addEventListener('change', () => recalcCrew());
+    crewBox.addEventListener('click', ev => {
+      const del = ev.target.closest('[data-crew-del]'); if(!del) return;
+      if(crewBox.querySelectorAll('.crew-row').length <= 1){ showToast('В бригаде должна быть хотя бы одна квалификация', 'warn'); return; }
+      del.closest('.crew-row').remove(); recalcCrew();
+    });
+    document.getElementById('crewAdd').onclick = () => { crewBox.insertAdjacentHTML('beforeend', crewRowHtml({qualification:'', grade:4, count:1})); recalcCrew(); };
+    form.elements['durationHours'].addEventListener('input', () => recalcCrew());
+    (function initCrew(){
+      const n = state.editingNormId ? allNorms().find(x => x.id === state.editingNormId) : null;
+      let rows = [{qualification:'', grade:4, count:2}], dur = '', note = '';
+      if(n){
+        // Для прежних нормативов длительность берём с полной точностью, чтобы не исказить утверждённый итог округлением
+        dur = n.durationHours > 0 ? n.durationHours : ((n.teamSize > 0 && n.normValue > 0) ? +(n.normValue / n.teamSize).toFixed(6) : '');
+        if(Array.isArray(n.labor_breakdown) && n.labor_breakdown.length){
+          rows = n.labor_breakdown.map(r => ({qualification: r.qualification || '', grade: r.grade || 4, count: r.count || 1}));
+        } else {
+          const g = parseInt((String(n.qualification || '').match(/\d/) || [])[0]) || 4;
+          rows = [{qualification:'', grade:g, count:Math.max(1, n.teamSize || 1)}];
+          note = '<div style="margin-top:6px;color:#fde047;font-size:12px">⚠ Состав восстановлен из прежних данных (бригада ' + (n.teamSize || 1) + ' чел., длительность = норматив ÷ бригада, квалификация «' + Utils.escapeHtml(n.qualification || '—') + '»). Уточните разряды и профессии.</div>';
+        }
+      }
+      crewBox.innerHTML = rows.map(crewRowHtml).join('');
+      form.elements['durationHours'].value = dur;
+      const r = recalcCrew(note);
+      if(n && r.ok && Math.abs(r.total - n.normValue) > 0.005) crewSum.insertAdjacentHTML('beforeend', '<div style="margin-top:6px;color:#fde047;font-size:12px">⚠ Норматив будет пересчитан: было ' + n.normValue + ', станет ' + r.total + '</div>');
+    })();
+
+    const odEx = document.getElementById('odExample');
+    if(odEx) odEx.onclick = () => {
+      const ta = form.elements['operation_details'];
+      if(ta.value.trim() && !confirm('Заменить текущий текст примером?')) return;
+      ta.value = JSON.stringify({ 'наименование_операции':'Замена ролика', 'подоперации':[{'наименование':'Демонтаж ролика','нормо_часы':2},{'наименование':'Монтаж и центровка','нормо_часы':2}], 'материалы':[{'наименование':'Подшипник','количество':2,'единица':'шт.'}] }, null, 2);
+    };
+
     form.onsubmit = e => {
       e.preventDefault();
+      const cr = recalcCrew();
+      if(!cr.ok){ document.getElementById('addFormWarn').innerHTML = '<div class="warn-banner err">✕ Укажите длительность (больше 0) и состав бригады: у каждой строки 1–6 разряд и не менее 1 человека</div>'; return; }
+      form.elements['labor_breakdown'].value = JSON.stringify(cr.crew.map(r => ({qualification: r.qualification, grade: r.grade, count: r.count, hours: cr.dur})));
       const fd = new FormData(e.target);
       const tmVal = (fd.get('tm')||'').trim();
       if(tmVal){ const r = TM.validate(tmVal); if(!r.ok){ document.getElementById('addFormWarn').innerHTML = '<div class="warn-banner err">✕ ТМ: ' + r.msg + '</div>'; return; } }
       const code = (fd.get('operationCode')||'').trim();
       const name = (fd.get('operationName')||'').trim();
-      const check = Dedup.check({operationCode:code, operationName:name, tm:tmVal}, allNorms());
+      const check = Dedup.check({operationCode:code, operationName:name, tm:tmVal}, allNorms().filter(n => n.id !== state.editingNormId));
       if(check.blocking.length){ document.getElementById('addFormWarn').innerHTML = '<div class="warn-banner err">🚫 ' + check.blocking[0].msg + '</div>'; return; }
       
       const metaRes = collectNormMeta(fd, tmVal);
       if(!metaRes.ok){ document.getElementById('addFormWarn').innerHTML = '<div class="warn-banner err">✕ ' + metaRes.msg + '</div>'; return; }
 
       if (state.editingNormId) {
-        const idx = state.custom.findIndex(x => x.id === state.editingNormId);
-        if (idx !== -1) {
-          const old = state.custom[idx];
-          state.custom[idx] = { ...old, operationCode: code, operationName: name, section: fd.get('section'), equipmentCategory: fd.get('equipmentCategory'), equipmentType: fd.get('equipmentType'), equipmentUnit: fd.get('equipmentUnit')||'', normValue: parseFloat(fd.get('normValue'))||0, teamSize: parseInt(fd.get('teamSize'))||1, qualification: fd.get('qualification')||'', complexity: parseInt(fd.get('complexity'))||3, sourceType: fd.get('sourceType'), sourceCode: fd.get('sourceCode')||'', confidenceLevel: parseFloat(fd.get('confidenceLevel'))||0.7, repairType: fd.get('repairType'), description: fd.get('description')||'', tm: tmVal };
+        const eid = state.editingNormId;
+        const cur = allNorms().find(x => x.id === eid);
+        const why = editDenyReason(cur);
+        if(why){ showToast(why, 'err'); return; }
+        const fields = { operationCode: code, operationName: name, section: fd.get('section'), equipmentCategory: fd.get('equipmentCategory'), equipmentType: fd.get('equipmentType'), equipmentUnit: fd.get('equipmentUnit')||'', normValue: parseFloat(fd.get('normValue'))||0, durationHours: parseFloat(fd.get('durationHours'))||0, teamSize: parseInt(fd.get('teamSize'))||1, qualification: fd.get('qualification')||'', complexity: parseInt(fd.get('complexity'))||3, sourceType: fd.get('sourceType'), sourceCode: fd.get('sourceCode')||'', confidenceLevel: parseFloat(fd.get('confidenceLevel'))||0.7, repairType: fd.get('repairType'), description: fd.get('description')||'', tm: tmVal };
+        if (BASE_NORMS.some(x => x.id === eid)) {
+          state.baseOverrides[eid] = { ...(state.baseOverrides[eid] || {}), ...fields };
+          saveBaseOverrides();
+        } else {
+          const idx = state.custom.findIndex(x => x.id === eid);
+          if (idx === -1) { showToast('Норматив не найден в базе', 'err'); return; }
+          state.custom[idx] = { ...state.custom[idx], ...fields };
           saveCustom();
-          setNormMeta(state.editingNormId, metaRes.meta);
-          Plugins.call('versions','saveVersion', state.custom[idx], 'Изменен');
         }
+        setNormMeta(eid, metaRes.meta);
+        Plugins.call('versions','saveVersion', allNorms().find(x => x.id === eid), 'Изменен');
+        const wf = Plugins.call('workflow','markEdited', eid);
         state.editingNormId = null;
-        showToast('Норматив обновлен', 'ok');
+        showToast('Норматив обновлён' + (wf && wf.changed ? ' и возвращён в «Черновик» на согласование' : ''), 'ok');
         state.tab = 'normatives';
         renderNav(); renderChat();
         return;
       } else {
-        const norm = { id: Utils.uid('custom'), operationCode:code, operationName:name, section: fd.get('section'), equipmentCategory: fd.get('equipmentCategory'), equipmentType: fd.get('equipmentType'), equipmentUnit: fd.get('equipmentUnit')||'', normValue: parseFloat(fd.get('normValue'))||0, unit:'чел-час', teamSize: parseInt(fd.get('teamSize'))||1, qualification: fd.get('qualification')||'', complexity: parseInt(fd.get('complexity'))||3, sourceType: fd.get('sourceType'), sourceCode: fd.get('sourceCode')||'', confidenceLevel: parseFloat(fd.get('confidenceLevel'))||0.7, repairType: fd.get('repairType'), description: fd.get('description')||'', toolsRequired: [], safetyRequirements: [], actualAvg: undefined, deviationPct: 0, tm: tmVal, isCustom: true, author: Auth.currentSession()?.login || 'unknown', createdAt: new Date().toISOString() };
+        const norm = { id: Utils.uid('custom'), operationCode:code, operationName:name, section: fd.get('section'), equipmentCategory: fd.get('equipmentCategory'), equipmentType: fd.get('equipmentType'), equipmentUnit: fd.get('equipmentUnit')||'', normValue: parseFloat(fd.get('normValue'))||0, durationHours: parseFloat(fd.get('durationHours'))||0, unit:'чел-час', teamSize: parseInt(fd.get('teamSize'))||1, qualification: fd.get('qualification')||'', complexity: parseInt(fd.get('complexity'))||3, sourceType: fd.get('sourceType'), sourceCode: fd.get('sourceCode')||'', confidenceLevel: parseFloat(fd.get('confidenceLevel'))||0.7, repairType: fd.get('repairType'), description: fd.get('description')||'', toolsRequired: [], safetyRequirements: [], actualAvg: undefined, deviationPct: 0, tm: tmVal, isCustom: true, author: Auth.currentSession()?.login || 'unknown', createdAt: new Date().toISOString() };
         state.custom.push(norm);
       saveCustom();
+      Plugins.call('workflow','init', norm.id);
       setNormMeta(norm.id, metaRes.meta);
       
       // Сохраняем версию
@@ -1752,7 +1977,7 @@ function renderImportProTab(tab){
   const area = document.getElementById('importArea'); if(!area) return;
   if(tab === 'history'){ const h = Plugins.call('import-pro','getHistory'); area.innerHTML = '<div class="form-sec-title">📜 История</div>' + (h.length ? h.map(x => '<div class="tile" style="margin-bottom:8px"><span class="chip chip-orange">' + x.type + '</span> <b>' + Utils.escapeHtml(x.filename||'—') + '</b><br>✅ +' + x.added + ' · 🔄 ' + x.updated + ' · ⏭ ' + x.skipped + '</div>').join('') : '<div class="empty">Пусто</div>'); return; }
   const isEq = tab === 'equipment';
-  area.innerHTML = '<div class="form-sec-title">📥 Загрузка</div><div id="dropZone" style="border:2px dashed var(--border);border-radius:14px;padding:32px;text-align:center;cursor:pointer;background:rgba(15,23,42,.4)"><div style="font-size:48px;opacity:.6">📂</div><div style="color:#fff;font-weight:600;margin-top:12px">Нажмите для выбора файла</div><input type="file" id="importFileInput" accept=".xlsx,.xls,.csv,.txt,.json" style="display:none"></div><div class="form-sec-title" style="margin-top:16px">⚙️ Опции</div><div class="grid2"><label style="display:flex;align-items:center;gap:8px;padding:10px;background:#111827;border:1px solid var(--border);border-radius:8px"><input type="checkbox" id="optUpdate"> Upsert</label></div><div id="importPreviewArea" style="margin-top:20px"></div><div style="margin-top:20px"><button class="btn btn-ghost btn-xs" type="button" id="tmplBtn">📄 Шаблон CSV</button></div>';
+  area.innerHTML = '<div class="form-sec-title">📥 Загрузка</div><div id="dropZone" style="border:2px dashed var(--border);border-radius:14px;padding:32px;text-align:center;cursor:pointer;background:rgba(15,23,42,.4)"><div style="font-size:48px;opacity:.6">📂</div><div style="color:#fff;font-weight:600;margin-top:12px">Нажмите для выбора файла</div><input type="file" id="importFileInput" accept=".xlsx,.xls,.csv,.txt,.json" style="display:none"></div><div class="form-sec-title" style="margin-top:16px">⚙️ Опции</div><div class="grid2"><label style="display:flex;align-items:center;gap:8px;padding:10px;background:#111827;border:1px solid var(--border);border-radius:8px"><input type="checkbox" id="optUpdate"> Обновлять существующие записи (по коду)</label></div><div id="importPreviewArea" style="margin-top:20px"></div><div style="margin-top:20px"><button class="btn btn-ghost btn-xs" type="button" id="tmplBtn">📄 Шаблон CSV</button></div>';
   const dz = document.getElementById('dropZone'); const fi = document.getElementById('importFileInput');
   dz.addEventListener('click', () => fi.click());
   fi.addEventListener('change', e => { if(e.target.files.length) handleFiles(e.target.files[0], isEq); e.target.value = ''; });
@@ -1783,7 +2008,7 @@ function performImport(items, isEq, dryRun){
   else result = Plugins.call('import-pro','upsertNorms', items, allNorms(), {updateExisting:upd, dryRun});
   resultEl.innerHTML = '<div class="warn-banner ' + (dryRun?'info':'ok') + '"><b>' + (dryRun?'🧪 Dry-run':'✅ Импорт завершён') + '</b></div><div class="grid4"><div class="tile"><div class="tile-h">Добавлено</div><div class="tile-v green">' + result.added.length + '</div></div><div class="tile"><div class="tile-h">Обновлено</div><div class="tile-v blue">' + result.updated.length + '</div></div><div class="tile"><div class="tile-h">Пропущено</div><div class="tile-v yellow">' + result.skipped.length + '</div></div><div class="tile"><div class="tile-h">Заблок.</div><div class="tile-v red">' + (result.blocked?.length || 0) + '</div></div></div>';
   if(!dryRun){
-    if(isEq){ result.added.forEach(eq => state.customEquip.push(eq)); saveEquip(); } else { result.added.forEach(n => state.custom.push(n)); saveCustom(); }
+    if(isEq){ result.added.forEach(eq => state.customEquip.push(eq)); saveEquip(); } else { result.added.forEach(n => state.custom.push(n)); saveCustom(); Plugins.call('workflow','init', result.added.map(n => n.id)); }
     Plugins.call('import-pro','setLastImport', {type: isEq ? 'equipment' : 'norms', addedIds: result.added.map(x => x.id), appliedAt: new Date().toISOString(), filename: state._importFilename || ''});
     Plugins.call('import-pro','pushHistory', {type: isEq ? 'Оборудование' : 'Нормативы', filename: state._importFilename || '', added: result.added.length, updated: result.updated.length, skipped: result.skipped.length, blocked: result.blocked?.length || 0, author: Auth.currentSession()?.login || '?', at: new Date().toISOString()});
     showToast('Импорт: +' + result.added.length + ' / обновлено ' + result.updated.length, 'ok');
@@ -1814,45 +2039,127 @@ function tabML(){
 /* ═══ WORKFLOW ═══ */
 function wfColor(c){ return {gray:'#94a3b8',yellow:'#fde047',green:'#4ade80',red:'#f87171'}[c] || '#94a3b8'; }
 function wfBg(c){ return {gray:'rgba(148,163,184,.12)',yellow:'rgba(234,179,8,.15)',green:'rgba(34,197,94,.12)',red:'rgba(220,38,38,.12)'}[c] || 'rgba(148,163,184,.12)'; }
+function wfNormTxt(v){ return String(v==null?'':v).toLowerCase().replace(/ё/g,'е'); }
+// Сначала пользовательские (новые сверху), затем базовые — чтобы новый норматив не терялся в хвосте списка.
+function wfSortedNorms(){
+  const baseIds = new Set(BASE_NORMS.map(n => n.id));
+  const all = allNorms();
+  return all.filter(n => !baseIds.has(n.id)).reverse().concat(all.filter(n => baseIds.has(n.id)));
+}
 function tabWorkflow(){
   const STATUSES = Plugins.call('workflow','STATUSES');
-  const stats = Plugins.call('workflow','getStats');
-  const session = Auth.currentSession();
-  const all = allNorms().map(n => ({norm:n, status: Plugins.call('workflow','getState',n.id).status}));
-  const filt = state.workflowFilter === 'all' ? all : all.filter(x => x.status === state.workflowFilter);
-  appendMsg('<div class="bubble-title">✓ Согласование</div><div class="bubble-sub">Маршрут согласования нормативов</div><div class="grid4" style="margin-bottom:16px">' + Object.entries(STATUSES).map(([k,s]) => '<div class="tile clickable" data-wf-filter="' + k + '" style="' + (state.workflowFilter===k?'border-color:var(--accent)':'') + '"><div class="tile-h">' + s.icon + ' ' + s.name + '</div><div class="tile-v" style="color:' + wfColor(s.color) + '">' + (stats[k]||0) + '</div></div>').join('') + '</div><div class="form-sec-title">📋 Нормативы (' + filt.length + ')</div>' + filt.slice(0, 50).map(({norm, status}) => renderWFNorm(norm, status, STATUSES, session)).join('')).then(() => {
-    document.querySelectorAll('[data-wf-filter]').forEach(el => el.onclick = () => { state.workflowFilter = state.workflowFilter === el.dataset.wfFilter ? 'all' : el.dataset.wfFilter; renderChat(); });
-    document.querySelectorAll('[data-wf-transition]').forEach(btn => {
-      btn.onclick = () => {
-        const id = btn.dataset.normId, to = btn.dataset.wfTransition;
-        const cur = Plugins.call('workflow','getState',id).status;
-        const c = prompt('Переход: ' + STATUSES[cur].name + ' → ' + STATUSES[to].name + '\n\nКомментарий:', '');
-        if(c === null) return;
-        const r = Plugins.call('workflow','transition', id, to, c);
-        if(r.ok){ showToast('Статус: ' + STATUSES[r.from].name + ' → ' + STATUSES[r.to].name, 'ok'); renderChat(); }
-        else showToast('Ошибка: ' + r.msg, 'err');
-      };
-    });
-    document.querySelectorAll('[data-wf-history]').forEach(btn => btn.onclick = () => showWFHistoryModal(btn.dataset.wfHistory));
-    document.querySelectorAll('[data-wf-toggle]').forEach(b => {
-      b.onclick = (e) => {
-        e.stopPropagation();
-        state.wfExpanded = state.wfExpanded || new Set();
-        if(state.wfExpanded.has(b.dataset.wfToggle)) state.wfExpanded.delete(b.dataset.wfToggle);
-        else state.wfExpanded.add(b.dataset.wfToggle);
-        renderChat();
-      };
-    });
+  const stats = {returned:0}; Object.keys(STATUSES).forEach(k => stats[k] = 0);
+  allNorms().forEach(n => { const st = Plugins.call('workflow','getState',n.id); if(stats[st.status] != null) stats[st.status]++; if(st.status === 'draft' && st.returned) stats.returned++; });
+  if(!state.wfLimit) state.wfLimit = 50;
+  const tiles = Object.entries(STATUSES).filter(([k]) => k !== 'rejected').map(([k,s]) => ({k, icon:s.icon, name:s.name, color:wfColor(s.color)}));
+  tiles.splice(1, 0, {k:'returned', icon:'↩', name:'На доработке', color:'#f87171'});
+  appendMsg('<div class="bubble-title">✓ Согласование</div><div class="bubble-sub">Маршрут согласования нормативов</div><div class="grid4" style="margin-bottom:16px">' + tiles.map(t => '<div class="tile clickable" data-wf-filter="' + t.k + '" style="' + (state.workflowFilter===t.k?'border-color:var(--accent)':'') + '"><div class="tile-h">' + t.icon + ' ' + t.name + '</div><div class="tile-v" style="color:' + t.color + '">' + (stats[t.k]||0) + '</div></div>').join('') + '</div><div class="form-sec-title">📋 Нормативы (<span id="wfCount">…</span>)</div><input class="form-inp" id="wfSearch" type="search" placeholder="🔎 Поиск по коду, названию, ТМ, оборудованию…" value="' + Utils.escapeHtml(state.workflowSearch || '') + '" style="margin-bottom:12px"><div id="wfListBox"></div>').then(() => {
+    document.querySelectorAll('[data-wf-filter]').forEach(el => el.onclick = () => { state.workflowFilter = state.workflowFilter === el.dataset.wfFilter ? 'all' : el.dataset.wfFilter; state.wfLimit = 50; renderChat(); });
+    const inp = document.getElementById('wfSearch');
+    if(inp) inp.oninput = () => { state.workflowSearch = inp.value; state.wfLimit = 50; wfRenderList(); };
+    wfRenderList();
   });
 }
-function renderWFNorm(norm, status, STATUSES, session){
+const WF_BTN = {
+  'draft->review':     {ico:'📤', label:'На проверку',          color:'yellow'},
+  'review->approved':  {ico:'✅', label:'Утвердить',             color:'green'},
+  'review->draft':     {ico:'↩',  label:'Отклонить',             color:'red'},
+  'approved->archived':{ico:'📦', label:'В архив',               color:'gray'},
+  'approved->draft':   {ico:'🔓', label:'Вернуть в черновик',    color:'gray'},
+  'approved->review':  {ico:'🔄', label:'На повторную проверку', color:'yellow'},
+  'archived->draft':   {ico:'📝', label:'Из архива в черновик',  color:'gray'}
+};
+function wfRenderList(){
+  const box = document.getElementById('wfListBox'); if(!box) return;
+  const STATUSES = Plugins.call('workflow','STATUSES');
+  const session = Auth.currentSession();
+  const q = wfNormTxt((state.workflowSearch || '').trim());
+  let list = wfSortedNorms().map(n => ({norm:n, st: Plugins.call('workflow','getState',n.id)}));
+  const f = state.workflowFilter || 'all';
+  if(f === 'returned') list = list.filter(x => x.st.status === 'draft' && x.st.returned);
+  else if(f !== 'all') list = list.filter(x => x.st.status === f);
+  if(q) list = list.filter(({norm}) => [norm.operationCode, norm.operationName, norm.tm, norm.equipmentType, norm.equipmentUnit, norm.section].some(v => wfNormTxt(v).includes(q)));
+  const limit = state.wfLimit || 50;
+  const cnt = document.getElementById('wfCount'); if(cnt) cnt.textContent = list.length;
+  box.innerHTML = list.length
+    ? list.slice(0, limit).map(({norm, st}) => renderWFNorm(norm, st, STATUSES, session)).join('') + (list.length > limit ? '<div style="text-align:center;margin:12px 0"><button class="btn btn-ghost" type="button" id="wfMore">Показать ещё ' + Math.min(50, list.length - limit) + ' (показано ' + limit + ' из ' + list.length + ')</button></div>' : '')
+    : '<div class="empty"><div class="empty-ico">🔎</div>Ничего не найдено</div>';
+  box.onclick = (e) => {
+    const more = e.target.closest('#wfMore');
+    const tr = e.target.closest('[data-wf-transition]');
+    const now = e.target.closest('[data-wf-approve-now]');
+    const hi = e.target.closest('[data-wf-history]');
+    const tg = e.target.closest('[data-wf-toggle]');
+    const ed = e.target.closest('[data-wf-edit]');
+    const del = e.target.closest('[data-wf-delete]');
+    if(more){ state.wfLimit = limit + 50; wfRenderList(); return; }
+    if(tr){
+      const id = tr.dataset.normId, to = tr.dataset.wfTransition;
+      const cur = Plugins.call('workflow','getState',id).status;
+      const reject = (cur === 'review' && to === 'draft');
+      const c = prompt((reject ? 'Отклонение: возврат на доработку' : 'Переход: ' + STATUSES[cur].name + ' → ' + STATUSES[to].name) + '\n\n' + (reject ? 'Причина (необязательно):' : 'Комментарий (необязательно):'), '');
+      if(c === null) return;
+      const r = Plugins.call('workflow','transition', id, to, c);
+      if(r.ok){ showToast(reject ? '↩ Возвращён на доработку (в «Черновик»)' : 'Статус: ' + STATUSES[r.from].name + ' → ' + STATUSES[r.to].name, 'ok'); renderChat(); }
+      else showToast('Ошибка: ' + r.msg, 'err');
+      return;
+    }
+    if(now){
+      const c = prompt('Утвердить сразу (минуя очередь проверки). В истории останется запись.\n\nКомментарий (ОБЯЗАТЕЛЬНО):', '');
+      if(c === null) return;
+      if(!c.trim()){ showToast('Для «Утвердить сразу» комментарий обязателен', 'warn'); return; }
+      const r = Plugins.call('workflow','approveNow', now.dataset.wfApproveNow, c);
+      if(r.ok){ showToast('✅ Утверждено', 'ok'); renderChat(); } else showToast('Ошибка: ' + r.msg, 'err');
+      return;
+    }
+    if(hi){ showWFHistoryModal(hi.dataset.wfHistory); return; }
+    if(tg){
+      state.wfExpanded = state.wfExpanded || new Set();
+      if(state.wfExpanded.has(tg.dataset.wfToggle)) state.wfExpanded.delete(tg.dataset.wfToggle); else state.wfExpanded.add(tg.dataset.wfToggle);
+      wfRenderList(); return;
+    }
+    if(ed){ openNormEditor(ed.dataset.wfEdit); return; }
+    if(del){ deleteReturnedNorm(del.dataset.wfDelete); }
+  };
+}
+// Удаление возвращённого на доработку пользовательского норматива: админ и инженер. Базовые не удаляются.
+function deleteReturnedNorm(id){
+  const sess = Auth.currentSession();
+  if(!sess || (sess.role !== 'admin' && sess.role !== 'engineer')){ showToast('Удалять могут только администратор и инженер', 'warn'); return; }
+  const norm = allNorms().find(n => n.id === id);
+  const st = Plugins.call('workflow','getState', id);
+  if(!norm || BASE_NORMS.some(x => x.id === id)){ showToast('Базовые нормативы удалять нельзя', 'warn'); return; }
+  if(!(st.status === 'draft' && st.returned)){ showToast('Удалять можно только возвращённые на доработку нормативы', 'warn'); return; }
+  if(!confirm('Удалить норматив «' + norm.operationCode + '»? Действие необратимо (история согласования сохранится).')) return;
+  Plugins.call('workflow','pushHistory', id, 'draft', 'draft', 'Удалён (возвращённый на доработку норматив)', {deleted:true});
+  state.custom = state.custom.filter(n => n.id !== id); saveCustom();
+  delete state.normMeta[id]; saveNormMeta();
+  state.calc = state.calc.filter(c => c.norm.id !== id); Storage.set('autosave_calc', state.calc);
+  showToast('Норматив удалён', 'ok');
+  renderChat();
+}
+function renderWFNorm(norm, st, STATUSES, session){
+  const status = st.status;
   const s = STATUSES[status];
-  const role = session?.role || 'user';
+  const isBase = BASE_NORMS.some(x => x.id === norm.id);
+  const returned = status === 'draft' && st.returned;
   const possible = [];
-  Object.keys(STATUSES).forEach(toKey => { if(toKey !== status && Plugins.call('workflow','canTransition', status, toKey, role)) possible.push({to:toKey, label:STATUSES[toKey].name, icon:STATUSES[toKey].icon, color:STATUSES[toKey].color}); });
+  ['review','approved','draft','archived'].forEach(to => {
+    if(to === status) return;
+    const key = status + '->' + to;
+    if(WF_BTN[key] && Plugins.call('workflow','canTransitionBy', status, to, session, norm)) possible.push({to, b:WF_BTN[key]});
+  });
+  const canApprove = Plugins.call('workflow','isApprover', session);
+  const canApproveNow = session?.role === 'admin' && (status === 'draft' || status === 'review');
+  const canEditHere = (status !== 'review' || session?.role === 'admin') && canEditNorm(norm, session);
+  const canDelete = returned && !isBase && (session?.role === 'admin' || session?.role === 'engineer');
+  const hint = (status === 'review' && !canApprove) ? '<div style="font-size:11px;color:var(--dim);margin-top:8px">⏳ Ожидает решения администратора или согласующего</div>' : '';
+  const retBox = returned ? '<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(248,113,113,.10);border:1px solid #f8717144;font-size:12px"><b style="color:#f87171">↩ Возвращён на доработку</b> · отклонений: <b>' + (st.rejectCount||1) + '</b>' + (st.rejectReason ? '<div style="color:#fca5a5;margin-top:3px">💬 Причина: ' + Utils.escapeHtml(st.rejectReason) + '</div>' : '<div style="color:var(--muted);margin-top:3px">Причина не указана</div>') + '<div style="color:var(--dim);font-size:10.5px;margin-top:2px">' + (st.rejectedBy ? Utils.escapeHtml(st.rejectedBy) + ' · ' : '') + (st.rejectedAt ? new Date(st.rejectedAt).toLocaleString('ru-RU') : '') + '</div></div>' : '';
+  const cntChip = (!returned && (st.rejectCount||0) > 0) ? '<span class="chip" style="background:rgba(148,163,184,.12);color:#94a3b8">отклонялся: ' + st.rejectCount + '</span>' : '';
+  const baseChip = isBase ? '<span class="chip" style="background:rgba(59,130,246,.12);color:#60a5fa">базовый</span>' + (norm._baseEdited ? '<span class="chip" style="background:rgba(234,179,8,.12);color:#fde047">изменён</span>' : '') : '';
   const expanded = state.wfExpanded && state.wfExpanded.has(norm.id);
   const hist = Plugins.call('workflow','getNormHistory', norm.id);
-  return '<div class="norm-row"><div class="norm-row-head"><div class="norm-row-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><span class="norm-row-code">' + Utils.escapeHtml(norm.operationCode) + '</span><span class="chip" style="background:' + wfBg(s.color) + ';color:' + wfColor(s.color) + ';border:1px solid ' + wfColor(s.color) + '55">' + s.icon + ' ' + s.name + '</span></div><div class="norm-row-name">' + Utils.escapeHtml(norm.operationName) + '</div></div><div class="norm-row-stats"><div class="norm-stat"><div class="norm-stat-v">' + norm.normValue + '</div><div class="norm-stat-l">чел-час</div></div></div></div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-orange btn-xs" type="button" data-wf-toggle="' + norm.id + '">' + (expanded ? '▲ Свернуть' : '▼ Управление') + '</button><button class="btn btn-ghost btn-xs" type="button" data-wf-history="' + norm.id + '">📜 История</button>' + possible.map(t => '<button class="btn btn-xs" type="button" data-wf-transition="' + t.to + '" data-norm-id="' + norm.id + '" style="background:' + wfBg(t.color) + ';color:' + wfColor(t.color) + ';border:1px solid ' + wfColor(t.color) + '55">' + t.icon + ' ' + t.label + '</button>').join('') + '</div>' + (expanded ? '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px"><div style="font-size:11px;color:var(--dim);text-transform:uppercase;font-weight:600;margin-bottom:8px">История переходов</div>' + (!hist.length ? '<div style="color:var(--muted);font-size:12px;padding:12px;background:#0f172a;border-radius:8px;text-align:center">История пуста</div>' : '<div style="max-height:200px;overflow-y:auto;background:#0f172a;border-radius:8px;padding:8px">' + hist.slice().reverse().map(h => '<div style="padding:6px 8px;border-bottom:1px solid rgba(51,65,85,.3);font-size:11.5px"><div style="color:#cbd5e1">' + (STATUSES[h.from]?.name||h.from) + ' → <b style="color:#fff">' + (STATUSES[h.to]?.name||h.to) + '</b></div>' + (h.comment ? '<div style="color:var(--muted);font-size:11px;margin-top:2px">💬 ' + Utils.escapeHtml(h.comment) + '</div>' : '') + '<div style="color:var(--dim);font-size:10.5px;margin-top:2px"><code>' + Utils.escapeHtml(h.by) + '</code> · ' + new Date(h.at).toLocaleString('ru-RU') + '</div></div>').join('') + '</div>') + '</div>' : '') + '</div>';
+  return '<div class="norm-row"><div class="norm-row-head"><div class="norm-row-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><span class="norm-row-code">' + Utils.escapeHtml(norm.operationCode) + '</span><span class="chip" style="background:' + wfBg(s.color) + ';color:' + wfColor(s.color) + ';border:1px solid ' + wfColor(s.color) + '55">' + s.icon + ' ' + s.name + '</span>' + baseChip + cntChip + '</div><div class="norm-row-name">' + Utils.escapeHtml(norm.operationName) + '</div></div><div class="norm-row-stats"><div class="norm-stat"><div class="norm-stat-v">' + norm.normValue + '</div><div class="norm-stat-l">чел-час</div></div></div></div>' + retBox + '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-orange btn-xs" type="button" data-wf-toggle="' + norm.id + '">' + (expanded ? '▲ Свернуть' : '▼ Согласование') + '</button><button class="btn btn-ghost btn-xs" type="button" data-wf-history="' + norm.id + '">📜 Этап согласования</button>' + (canEditHere ? '<button class="btn btn-ghost btn-xs" type="button" data-wf-edit="' + norm.id + '">✏️ Редактировать</button>' : '') + possible.map(t => '<button class="btn btn-xs" type="button" data-wf-transition="' + t.to + '" data-norm-id="' + norm.id + '" style="background:' + wfBg(t.b.color) + ';color:' + wfColor(t.b.color) + ';border:1px solid ' + wfColor(t.b.color) + '55">' + t.b.ico + ' ' + t.b.label + '</button>').join('') + (canApproveNow ? '<button class="btn btn-xs" type="button" data-wf-approve-now="' + norm.id + '" style="background:rgba(34,197,94,.18);color:#4ade80;border:1px solid #4ade8055">⚡ Утвердить сразу</button>' : '') + (canDelete ? '<button class="btn btn-danger btn-xs" type="button" data-wf-delete="' + norm.id + '">🗑 Удалить</button>' : '') + '</div>' + hint + (expanded ? '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px"><div style="font-size:11px;color:var(--dim);text-transform:uppercase;font-weight:600;margin-bottom:8px">История переходов</div>' + (!hist.length ? '<div style="color:var(--muted);font-size:12px;padding:12px;background:#0f172a;border-radius:8px;text-align:center">История пуста</div>' : '<div style="max-height:200px;overflow-y:auto;background:#0f172a;border-radius:8px;padding:8px">' + hist.slice().reverse().map(h => '<div style="padding:6px 8px;border-bottom:1px solid rgba(51,65,85,.3);font-size:11.5px"><div style="color:#cbd5e1">' + (STATUSES[h.from]?.name||h.from) + ' → <b style="color:#fff">' + (STATUSES[h.to]?.name||h.to) + '</b>' + (h.reject ? ' <b style="color:#f87171">↩ отклонён</b>' : '') + (h.edit ? ' <b style="color:#94a3b8">✏️ правка</b>' : '') + (h.deleted ? ' <b style="color:#f87171">🗑 удалён</b>' : '') + '</div>' + (h.comment ? '<div style="color:var(--muted);font-size:11px;margin-top:2px">💬 ' + Utils.escapeHtml(h.comment) + '</div>' : '') + '<div style="color:var(--dim);font-size:10.5px;margin-top:2px"><code>' + Utils.escapeHtml(h.by) + '</code> · ' + new Date(h.at).toLocaleString('ru-RU') + '</div></div>').join('') + '</div>') + '</div>' : '') + '</div>';
 }
 function showWFHistoryModal(normId){
   const norm = allNorms().find(n => n.id === normId); if(!norm) return;
@@ -1860,7 +2167,7 @@ function showWFHistoryModal(normId){
   const STATUSES = Plugins.call('workflow','STATUSES');
   const cur = Plugins.call('workflow','getState',normId).status;
   const m = document.createElement('div'); m.className = 'modal-ov';
-  m.innerHTML = '<div class="modal" style="max-width:640px"><div class="modal-head"><div><div class="modal-title">📜 История</div><div style="color:var(--muted);font-size:12px">' + Utils.escapeHtml(norm.operationCode) + '</div></div><button class="modal-close" type="button" data-close>×</button></div><div class="modal-body"><div style="background:' + wfBg(STATUSES[cur].color) + ';border-radius:10px;padding:14px;margin-bottom:16px;text-align:center"><div style="font-size:20px;font-weight:700;color:' + wfColor(STATUSES[cur].color) + '">' + STATUSES[cur].icon + ' ' + STATUSES[cur].name + '</div></div>' + (hist.length ? hist.slice().reverse().map(t => '<div style="background:#111827;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px"><span style="color:' + wfColor(STATUSES[t.from].color) + '">' + STATUSES[t.from].name + '</span> → <span style="color:' + wfColor(STATUSES[t.to].color) + '">' + STATUSES[t.to].name + '</span><span style="color:var(--dim);font-size:11px">' + new Date(t.at).toLocaleString('ru-RU') + '</span></div><div style="margin-top:6px">👤 ' + Utils.escapeHtml(t.by) + '</div>' + (t.comment?'<div style="margin-top:6px;font-style:italic;color:#cbd5e1">«' + Utils.escapeHtml(t.comment) + '»</div>':'') + '</div>').join('') : '<div class="empty">Пусто</div>') + '<div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-ghost" type="button" data-close>Закрыть</button></div></div></div>';
+  m.innerHTML = '<div class="modal" style="max-width:640px"><div class="modal-head"><div><div class="modal-title">📜 Этап согласования</div><div style="color:var(--muted);font-size:12px">' + Utils.escapeHtml(norm.operationCode) + '</div></div><button class="modal-close" type="button" data-close>×</button></div><div class="modal-body"><div style="background:' + wfBg(STATUSES[cur].color) + ';border-radius:10px;padding:14px;margin-bottom:16px;text-align:center"><div style="font-size:20px;font-weight:700;color:' + wfColor(STATUSES[cur].color) + '">' + STATUSES[cur].icon + ' ' + STATUSES[cur].name + '</div></div>' + (hist.length ? hist.slice().reverse().map(t => '<div style="background:#111827;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px"><span style="color:' + wfColor(STATUSES[t.from].color) + '">' + STATUSES[t.from].name + '</span> → <span style="color:' + wfColor(STATUSES[t.to].color) + '">' + STATUSES[t.to].name + '</span>' + (t.reject ? ' <b style="color:#f87171">↩ отклонён</b>' : '') + (t.edit ? ' <b style="color:#94a3b8">✏️ правка</b>' : '') + '<span style="color:var(--dim);font-size:11px">' + new Date(t.at).toLocaleString('ru-RU') + '</span></div><div style="margin-top:6px">👤 ' + Utils.escapeHtml(t.by) + '</div>' + (t.comment?'<div style="margin-top:6px;font-style:italic;color:#cbd5e1">«' + Utils.escapeHtml(t.comment) + '»</div>':'') + '</div>').join('') : '<div class="empty">Пусто</div>') + '<div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-ghost" type="button" data-close>Закрыть</button></div></div></div>';
   document.body.appendChild(m);
   m.querySelectorAll('[data-close]').forEach(b => b.onclick = () => m.remove());
 }
@@ -1880,24 +2187,38 @@ function renderVerNorm(norm, versions){
 /* ═══ ОБЗОР FULL ═══ */
 function tabOverviewFull(){
   const modules = [
-    {id:'import', ico:'📥', title:'Импорт PRO', status:'ready', desc:'XLSX, CSV, JSON, fallback для обрезанных.'},
-    {id:'dedup-hard', ico:'🔎', title:'HARD-дедупликация', status:'ready', desc:'Автоблокировка дубликатов.'},
+    {id:'import', ico:'📥', title:'Импорт PRO', status:'ready', desc:'XLSX, CSV, JSON, запасной разбор обрезанных файлов.'},
+    {id:'dedup-hard', ico:'🔎', title:'Жёсткая проверка дублей', status:'ready', desc:'Автоблокировка дубликатов.'},
     {id:'ml', ico:'🧠', title:'ML-прогноз', status:'ready', desc:'Эвристический прогноз.'},
-    {id:'workflow', ico:'✓', title:'Workflow', status:'ready', desc:'5 статусов, права, timeline.'},
-    {id:'versions', ico:'🔖', title:'Версионирование', status:'ready', desc:'Diff, откат, автосоздание.'},
+    {id:'workflow', ico:'✓', title:'Согласование', status:'ready', desc:'5 статусов, права, хронология.'},
+    {id:'versions', ico:'🔖', title:'Версионирование', status:'ready', desc:'Сравнение версий, откат, автосоздание.'},
     {id:'analytics', ico:'📈', title:'Аналитика', status:'ready', desc:'Сводные отчёты.'}
   ];
-  appendMsg('<div class="bubble-title">🔬 Full V7.0</div><div class="bubble-sub">11 плагинов</div><div class="grid4" style="margin-top:14px"><div class="tile"><div class="tile-h">Версия</div><div class="tile-v orange">Full V7.0</div></div><div class="tile"><div class="tile-h">Плагинов</div><div class="tile-v blue">' + Plugins.list().length + '</div></div><div class="tile"><div class="tile-h">Нормативов</div><div class="tile-v green">' + allNorms().length + '</div></div><div class="tile"><div class="tile-h">dedup</div><div class="tile-v yellow">HARD</div></div></div><div class="form-sec-title" style="margin-top:20px">📦 Модули</div><div class="grid2">' + modules.map(m => '<div class="module-card ' + m.status + '" data-goto="' + m.id + '"><div class="module-card-head"><div class="module-card-icon">' + m.ico + '</div><div style="flex:1"><div class="module-card-title">' + m.title + '</div><span class="module-card-status ' + m.status + '">Готово</span></div></div><div class="module-card-desc">' + m.desc + '</div></div>').join('') + '</div><div class="form-sec-title" style="margin-top:20px">🔌 Плагины</div><div style="display:flex;flex-wrap:wrap;gap:6px">' + Plugins.list().map(p => '<span class="chip chip-green">' + p + '</span>').join('') + '</div>').then(() => { document.querySelectorAll('[data-goto]').forEach(el => el.onclick = () => { state.tab = el.dataset.goto; renderNav(); renderChat(); }); });
+  appendMsg('<div class="bubble-title">🔬 Full V8.0</div><div class="bubble-sub">' + Plugins.list().length + ' плагинов</div><div class="grid4" style="margin-top:14px"><div class="tile"><div class="tile-h">Версия</div><div class="tile-v orange">Full V8.0</div></div><div class="tile"><div class="tile-h">Плагинов</div><div class="tile-v blue">' + Plugins.list().length + '</div></div><div class="tile"><div class="tile-h">Нормативов</div><div class="tile-v green">' + allNorms().length + '</div></div><div class="tile"><div class="tile-h">Проверка дублей</div><div class="tile-v yellow">Жёсткая</div></div></div><div class="form-sec-title" style="margin-top:20px">📦 Модули</div><div class="grid2">' + modules.map(m => '<div class="module-card ' + m.status + '" data-goto="' + m.id + '"><div class="module-card-head"><div class="module-card-icon">' + m.ico + '</div><div style="flex:1"><div class="module-card-title">' + m.title + '</div><span class="module-card-status ' + m.status + '">Готово</span></div></div><div class="module-card-desc">' + m.desc + '</div></div>').join('') + '</div><div class="form-sec-title" style="margin-top:20px">🔌 Плагины</div><div style="display:flex;flex-wrap:wrap;gap:6px">' + Plugins.list().map(p => '<span class="chip chip-green">' + Utils.escapeHtml(ruPlugin(p)) + '</span>').join('') + '</div>').then(() => { document.querySelectorAll('[data-goto]').forEach(el => el.onclick = () => { state.tab = el.dataset.goto; renderNav(); renderChat(); }); });
 }
 
 /* ═══ АНАЛИТИКА ═══ */
 function tabAnalytics(){ appendMsg('<div class="bubble-title">📈 Аналитика</div><div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-orange" type="button" id="genReport">📊 Отчёт</button></div><div id="analyticsResult" style="margin-top:16px"></div>').then(() => { document.getElementById('genReport').onclick = () => { const last = Plugins.call('analytics','fullReport', allNorms()); document.getElementById('analyticsResult').innerHTML = '<div class="grid4"><div class="tile"><div class="tile-h">Нормативов</div><div class="tile-v blue">' + last.total + '</div></div><div class="tile"><div class="tile-h">Всего ч/ч</div><div class="tile-v green">' + last.totalHours + '</div></div><div class="tile"><div class="tile-h">Ср. дост.</div><div class="tile-v yellow">' + (last.avgConfidence*100).toFixed(0) + '%</div></div><div class="tile"><div class="tile-h">Участков</div><div class="tile-v orange">' + Object.values(last.bySection).filter(s => s.count).length + '</div></div></div>'; }; }); }
 
 /* ═══ SOURCES / INTEGRATIONS ═══ */
-function tabSources(){ const src = Plugins.call('sources','listKnownSources'); appendMsg('<div class="bubble-title">📚 Источники</div><div class="warn-banner info">Каркас для backend-интеграции</div>' + src.map(s => '<div class="tile" style="margin-bottom:8px"><div style="font-family:monospace;color:#fdba74;font-size:12px">' + Utils.escapeHtml(s.code) + '</div><div style="color:#fff;font-weight:600">' + Utils.escapeHtml(s.title) + '</div><span class="chip chip-' + (s.available?'green':'gray') + '" style="margin-top:6px;display:inline-block">' + (s.available?'локально':'backend') + '</span></div>').join('')); }
+function tabSources(){ const src = Plugins.call('sources','listKnownSources'); appendMsg('<div class="bubble-title">📚 Источники</div><div class="warn-banner info">Каркас для серверной интеграции</div>' + src.map(s => '<div class="tile" style="margin-bottom:8px"><div style="font-family:monospace;color:#fdba74;font-size:12px">' + Utils.escapeHtml(s.code) + '</div><div style="color:#fff;font-weight:600">' + Utils.escapeHtml(s.title) + '</div><span class="chip chip-' + (s.available?'green':'gray') + '" style="margin-top:6px;display:inline-block">' + (s.available?'локально':'на сервере') + '</span></div>').join('')); }
 function tabIntegrations(){ const sys = Plugins.call('integrations','listSystems'); appendMsg('<div class="bubble-title">🔗 Интеграции</div><div class="warn-banner info">Моки</div><div class="grid3">' + sys.map(s => '<div class="tile" style="text-align:center"><div style="font-size:32px;margin-bottom:8px">' + s.icon + '</div><div style="color:#fff;font-weight:700">' + s.name + '</div><div class="tile-d">' + s.description + '</div></div>').join('') + '</div>'); }
 
 /* ═══ SETTINGS ═══ */
+function approversBlockHtml(){
+  const list = Plugins.call('workflow','getApprovers');
+  const old = Storage.get('approvers', []);
+  const matched = new Set(Auth.listUsers().filter(u => u.approver).map(u => String(u.name||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim()));
+  const lost = (Array.isArray(old) ? old : []).filter(a => a && a.name && !matched.has(String(a.name).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim()));
+  return '<div class="form-sec-title" style="margin-top:20px">🛡 Согласующие нормативов</div><div class="tile"><div class="tile-d" style="margin-bottom:10px">Утверждать и возвращать на доработку нормативы могут администратор и инженеры с флажком «Согласующий». Назначаются во вкладке «Пользователи».</div>' +
+    (list.length ? list.map(a => '<div style="padding:6px 10px;border-bottom:1px solid var(--border)"><b style="color:#fff">' + Utils.escapeHtml(a.name) + '</b> <span style="font-family:monospace;color:var(--muted);font-size:12px">' + Utils.escapeHtml(a.login) + '</span></div>').join('') : '<div class="empty" style="padding:14px">Согласующих нет — утверждает только администратор</div>') +
+    (lost.length ? '<div style="margin-top:10px;font-size:12px;color:#fde047">⚠ Из прежнего списка не сопоставлены с учётными записями инженеров: ' + lost.map(a => Utils.escapeHtml(a.name)).join(', ') + '. Назначьте их вручную во вкладке «Пользователи».</div>' : '') +
+    '<div style="margin-top:10px"><button class="btn btn-ghost btn-xs" type="button" id="goUsers">👥 Перейти к пользователям</button></div></div>';
+}
+function bindApprovers(){
+  const b = document.getElementById('goUsers'); if(!b) return;
+  b.onclick = () => { state.tab = 'users'; renderNav(); renderChat(); };
+}
 function tabSettings(){
   const s = Auth.currentSession();
   const html = `
@@ -1915,6 +2236,8 @@ function tabSettings(){
       </div>
       <span class="badge-role ${s?.role||'user'}">${ROLE_NAMES[s?.role||'user']}</span>
     </div>
+
+    ${s?.role === 'admin' ? approversBlockHtml() : ''}
 
     <div class="form-sec-title" style="margin-top:16px">🔑 Смена пароля</div>
     <form id="pwdForm">
@@ -1971,6 +2294,7 @@ function tabSettings(){
     </div>
   `;
   appendMsg(html).then(()=>{
+    bindApprovers();
     document.getElementById('pwdForm').onsubmit = async e=>{
       e.preventDefault();
       const fd = new FormData(e.target);
@@ -1982,8 +2306,11 @@ function tabSettings(){
     };
     document.getElementById('expAll').onclick = ()=>{
       const data = {
-        _meta:{app:'ESP Full V7.0', exportedAt:new Date().toISOString(), exportedBy:s?.login},
-        custom: state.custom, customEquip: state.customEquip, cards: state.cards
+        _meta:{app:'ESP Full V8.0', exportedAt:new Date().toISOString(), exportedBy:s?.login},
+        custom: state.custom, customEquip: state.customEquip, cards: state.cards,
+        baseOverrides: state.baseOverrides, normMeta: state.normMeta,
+        workflow: { states: Storage.get('workflow_states', {}), history: Storage.get('workflow_history', {}) },
+        approvers: Plugins.call('workflow','getApprovers')   // [{login, name}] согласующих
       };
       Utils.download(`esp_backup_${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(data, null, 2), 'application/json');
     };
@@ -1996,16 +2323,24 @@ function tabSettings(){
           const raw = JSON.parse(reader.result);
           // ═══ Универсальная поддержка 3 форматов ═══
           let customs, equip, cards;
+          const ext = (!Array.isArray(raw) && raw) ? raw : {};
+          const isAdm = s?.role === 'admin';
+          const nOv = ext.baseOverrides ? Object.keys(ext.baseOverrides).length : 0;
           if (Array.isArray(raw)) { customs = raw; equip = []; cards = []; }
           else {
             customs = Array.isArray(raw.custom) ? raw.custom : [];
             equip   = Array.isArray(raw.customEquip) ? raw.customEquip : [];
             cards   = Array.isArray(raw.cards) ? raw.cards : [];
           }
-          if(!confirm(`Импортировать данные?\n\nНормативов: ${customs.length}\nОборудования: ${equip.length}\nТехкарт: ${cards.length}\n\nТекущие данные будут заменены.`)) return;
+          if(!confirm(`Импортировать данные?\n\nНормативов: ${customs.length}\nОборудования: ${equip.length}\nТехкарт: ${cards.length}` + (nOv ? `\nПравок базовых нормативов: ${nOv}` : '') + (ext.workflow ? `\nСтатусы и история согласования: ${isAdm ? 'будут восстановлены' : 'пропущены (только администратор)'}` : '') + `\n\nТекущие данные будут заменены.`)) return;
           state.custom = customs; saveCustom();
           state.customEquip = equip; saveEquip();
           state.cards = cards; saveCards();
+          // Новые слои: восстанавливаются, только если есть в файле (старые копии их не затрагивают)
+          if (ext.baseOverrides && typeof ext.baseOverrides === 'object') { state.baseOverrides = ext.baseOverrides; saveBaseOverrides(); }
+          if (ext.normMeta && typeof ext.normMeta === 'object') { state.normMeta = ext.normMeta; saveNormMeta(); }
+          if (isAdm && ext.workflow) { Storage.set('workflow_states', ext.workflow.states || {}); Storage.set('workflow_history', ext.workflow.history || {}); }
+          if (isAdm && Array.isArray(ext.approvers)) { Auth.applyApprovers(ext.approvers); }
           alert('Импорт выполнен');
           renderChat();
         }catch(e){ alert('Ошибка чтения файла: '+e.message); }
@@ -2034,18 +2369,21 @@ function tabUsers(){
         (u.login === Auth.currentSession().login ? '<span class="badge-mini" style="margin-left:6px">вы</span>' : '') +
         (u.isHashed ? '<span class="badge-mini" style="margin-left:6px;color:#86efac;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.1)">🔒 хеш</span>' : '<span class="badge-mini" style="margin-left:6px;color:#fca5a5;border:1px solid rgba(220,38,38,.4);background:rgba(220,38,38,.1)">⚠ plaintext</span>') +
         '<div style="color:#fff;font-weight:600;margin-top:4px">' + Utils.escapeHtml(u.name) + '</div>' +
-        '<span class="badge-role ' + u.role + '" style="margin-top:6px;display:inline-block">' + ROLE_NAMES[u.role] + '</span></div>' +
-        '<div style="display:flex;gap:6px">' + 
+        '<span class="badge-role ' + u.role + '" style="margin-top:6px;display:inline-block">' + ROLE_NAMES[u.role] + '</span>' +
+        (u.role === 'admin' ? '<span class="badge-mini" style="margin-left:6px;color:#fde047" title="Администратор согласует по умолчанию">🛡 согласует всегда</span>' : (u.approver ? '<span class="badge-mini" style="margin-left:6px;color:#4ade80;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.1)">🛡 Согласующий</span>' : '')) + '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">' + 
+        (u.role === 'engineer' ? '<button class="btn btn-xs ' + (u.approver ? 'btn-ghost' : 'btn-primary') + '" type="button" data-toggle-appr="' + Utils.escapeHtml(u.login) + '" data-appr="' + (u.approver ? '0' : '1') + '">' + (u.approver ? '🛡 Снять права согласующего' : '🛡 Назначить согласующим') + '</button>' : '') +
         (u.login !== Auth.currentSession().login ? 
           '<button class="btn btn-ghost btn-xs" type="button" data-reset-pwd="' + Utils.escapeHtml(u.login) + '">🔑 Сбросить пароль</button>' +
           '<button class="btn btn-danger btn-xs" type="button" data-del-user="' + Utils.escapeHtml(u.login) + '">🗑</button>' : '') +
         '</div></div></div>';
     }).join('') + 
-    '</div><div class="form-sec-title">➕ Добавить</div><form id="addUserForm"><div class="form-row"><div class="form-group"><label class="form-lbl">Логин *</label><input class="form-inp" name="login" required pattern="[a-zA-Z0-9_]{3,20}"></div><div class="form-group"><label class="form-lbl">ФИО *</label><input class="form-inp" name="name" required></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Пароль *</label><input class="form-inp" type="password" name="password" minlength="6" required></div><div class="form-group"><label class="form-lbl">Роль *</label><select class="form-sel" name="role"><option value="user">Пользователь</option><option value="engineer">Инженер</option><option value="admin">Администратор</option></select></div></div><div style="display:flex;justify-content:flex-end;margin-top:8px"><button type="submit" class="btn btn-orange">➕ Добавить</button></div></form>'
+    '</div><div class="form-sec-title">➕ Добавить</div><form id="addUserForm"><div class="form-row"><div class="form-group"><label class="form-lbl">Логин *</label><input class="form-inp" name="login" required pattern="[a-zA-Z0-9_]{3,20}"></div><div class="form-group"><label class="form-lbl">ФИО *</label><input class="form-inp" name="name" required></div></div><div class="form-row"><div class="form-group"><label class="form-lbl">Пароль *</label><input class="form-inp" type="password" name="password" minlength="6" required></div><div class="form-group"><label class="form-lbl">Роль *</label><select class="form-sel" name="role"><option value="user">Пользователь</option><option value="engineer">Инженер</option><option value="admin">Администратор</option></select></div></div><label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px;color:#cbd5e1"><input type="checkbox" name="approver" value="1"> 🛡 Согласующий нормативов (только для роли «Инженер»: инженер или начальник службы надёжности)</label><div style="display:flex;justify-content:flex-end;margin-top:8px"><button type="submit" class="btn btn-orange">➕ Добавить</button></div></form>'
   ).then(() => {
     document.querySelectorAll('[data-del-user]').forEach(b => b.onclick = () => { if(confirm('Удалить "' + b.dataset.delUser + '"?')){ const r = Auth.removeUser(b.dataset.delUser); if(r.ok) renderChat(); else alert(r.msg); } });
     document.querySelectorAll('[data-reset-pwd]').forEach(b => b.onclick = () => { showAdminResetPasswordModal(b.dataset.resetPwd); });
-    document.getElementById('addUserForm').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); const r = await Auth.addUser({login:fd.get('login').trim(), password:fd.get('password'), name:fd.get('name'), role:fd.get('role')}); if(r.ok){ alert('Добавлен'); renderChat(); } else alert(r.msg); };
+    document.querySelectorAll('[data-toggle-appr]').forEach(b => b.onclick = () => { const r = Auth.setApprover(b.dataset.toggleAppr, b.dataset.appr === '1'); if(r.ok){ showToast(b.dataset.appr === '1' ? 'Назначен согласующим' : 'Права согласующего сняты', 'ok'); renderChat(); } else showToast(r.msg, 'err'); });
+    document.getElementById('addUserForm').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); const r = await Auth.addUser({login:fd.get('login').trim(), password:fd.get('password'), name:fd.get('name'), role:fd.get('role'), approver:fd.get('approver') === '1'}); if(r.ok){ alert('Добавлен'); renderChat(); } else alert(r.msg); };
   });
 }
 function showAdminResetPasswordModal(login){
@@ -2066,7 +2404,7 @@ function showAdminResetPasswordModal(login){
 /* ═══ ABOUT ═══ */
 function tabAbout(){
   const s = Auth.currentSession();
-  appendMsg('<div class="bubble-title">ℹ️ О версии Full V7.0</div><p>Профессиональный инструмент нормировщика.</p><div class="form-sec-title">📦 Конфигурация</div><div class="grid4"><div class="tile"><div class="tile-h">Версия</div><div class="tile-v orange">V7.0</div></div><div class="tile"><div class="tile-h">Ядро</div><div class="tile-v purple" style="font-size:13px">ESP v' + ESP.version + '</div></div><div class="tile"><div class="tile-h">Плагинов</div><div class="tile-v green">' + Plugins.list().length + '</div></div><div class="tile"><div class="tile-h">Нормативов</div><div class="tile-v blue">' + allNorms().length + '</div></div></div><div class="form-sec-title">🛡️ Лицензия</div><div class="tile" style="border-color:rgba(234,88,12,.45)"><div style="font-family:monospace;font-size:12px;color:#fdba74">' + ESP_GUARD.licenseId + '</div><div style="color:#fff;font-weight:700;margin-top:4px">' + ESP_GUARD.product + '</div><div style="color:var(--muted);font-size:11.5px;margin-top:8px">Правообладатель: <b style="color:#fff">' + ESP_GUARD.owner + '</b><br>Водяной знак: <code>' + ESP_GUARD.watermark + '</code></div></div><div class="form-sec-title">🔌 Плагины (' + Plugins.list().length + ')</div><div style="display:flex;flex-wrap:wrap;gap:6px">' + Plugins.list().map(p => '<span class="chip chip-green">' + Utils.escapeHtml(p) + '</span>').join('') + '</div><div class="form-sec-title">👤 Пользователь</div><div class="tile"><div style="color:#fff;font-weight:700">' + Utils.escapeHtml(s?.name||'—') + '</div><span class="badge-role ' + (s?.role||'user') + '">' + ROLE_NAMES[s?.role||'user'] + '</span></div>');
+  appendMsg('<div class="bubble-title">ℹ️ О версии Full V8.0</div><p>Профессиональный инструмент нормировщика.</p><div class="form-sec-title">📦 Конфигурация</div><div class="grid4"><div class="tile"><div class="tile-h">Версия</div><div class="tile-v orange">V8.0</div></div><div class="tile"><div class="tile-h">Ядро</div><div class="tile-v purple" style="font-size:13px">ESP v' + ESP.version + '</div></div><div class="tile"><div class="tile-h">Плагинов</div><div class="tile-v green">' + Plugins.list().length + '</div></div><div class="tile"><div class="tile-h">Нормативов</div><div class="tile-v blue">' + allNorms().length + '</div></div></div><div class="form-sec-title">🛡️ Лицензия</div><div class="tile" style="border-color:rgba(234,88,12,.45)"><div style="font-family:monospace;font-size:12px;color:#fdba74">' + ESP_GUARD.licenseId + '</div><div style="color:#fff;font-weight:700;margin-top:4px">' + ESP_GUARD.product + '</div><div style="color:var(--muted);font-size:11.5px;margin-top:8px">Правообладатель: <b style="color:#fff">' + ESP_GUARD.owner + '</b><br>Водяной знак: <code>' + ESP_GUARD.watermark + '</code></div></div><div class="form-sec-title">🔌 Плагины (' + Plugins.list().length + ')</div><div style="display:flex;flex-wrap:wrap;gap:6px">' + Plugins.list().map(p => '<span class="chip chip-green">' + Utils.escapeHtml(ruPlugin(p)) + '</span>').join('') + '</div><div class="form-sec-title">👤 Пользователь</div><div class="tile"><div style="color:#fff;font-weight:700">' + Utils.escapeHtml(s?.name||'—') + '</div><span class="badge-role ' + (s?.role||'user') + '">' + ROLE_NAMES[s?.role||'user'] + '</span></div>');
 }
 
 /* ═══ МОДАЛКИ ═══ */
@@ -2133,7 +2471,7 @@ ESP.init();
 APP.setVersion('full');
 
 try{
-  document.querySelector('.sidebar-footer').innerHTML = 'ЭСПЦ © 2024–2026 · V7.0 <span class="ver">Full</span> · <span style="opacity:.55;font-family:monospace;font-size:9.5px">' + ESP_GUARD.watermark + '</span>';
+  document.querySelector('.sidebar-footer').innerHTML = 'ЭСПЦ © 2024–2026 · V8.0 <span class="ver">Full</span> · <span style="opacity:.55;font-family:monospace;font-size:9.5px">' + ESP_GUARD.watermark + '</span>';
 }catch(e){}
 
 document.getElementById('loginForm').onsubmit = async e => {
@@ -2155,6 +2493,7 @@ document.querySelectorAll('.login-account').forEach(el => {
 
 (async () => {
   try { await Auth.migratePasswords(); } catch(e) { console.error('[ESP] Ошибка миграции:', e); }
+  try { Auth.migrateApprovers(); } catch(e) { console.error('[ESP] Ошибка переноса согласующих:', e); }
   if(Auth.currentSession()) showApp();
   else showLogin();
 })();
